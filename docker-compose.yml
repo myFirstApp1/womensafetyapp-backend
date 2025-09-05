@@ -1,0 +1,147 @@
+networks:
+  app-net:
+    driver: bridge
+
+services:
+  # ---------- Infra ----------
+  mysql-db:
+    image: mysql:8.0
+    container_name: mysql-db
+    environment:
+      MYSQL_DATABASE: womendb
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3310:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - app-net
+
+  zookeeper:
+    image: bitnami/zookeeper:latest
+    ports:
+      - "2181:2181"
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+    networks:
+      - app-net
+
+  redpanda:
+    image: redpandadata/redpanda:latest
+    container_name: redpanda
+    command:
+      - redpanda start --overprovisioned --smp 1 --memory 1G --reserve-memory 0M --node-id 0 --check=false --kafka-addr PLAINTEXT://0.0.0.0:9092 --advertise-kafka-addr PLAINTEXT://redpanda:9092
+    ports:
+      - "9092:9092"
+      - "9644:9644"
+    networks:
+      - app-net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./infra/grafana:/var/lib/grafana
+    depends_on:
+      - loki
+    networks:
+      - app-net
+
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./infra/loki:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - app-net
+
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: promtail
+    depends_on:
+      - loki
+    volumes:
+      - ./infra/promtail/promtail-config.yaml:/etc/promtail/config.yaml
+      - ./logs:/app/logs
+    command: -config.file=/etc/promtail/config.yaml
+    networks:
+      - app-net
+
+  # ---------- Services ----------
+  auth-service:
+    build: ./womensafetyAuthservice/auth-service
+    container_name: auth-service
+    ports:
+      - "8080:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/womendb?useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: password
+      LOGGING_FILE_NAME: /app/logs/auth-service.log
+      SPRING_PROFILES_ACTIVE: docker
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+    networks:
+      - app-net
+
+  user-service:
+    build: ./userservice/user-service
+    container_name: user-service
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/womendb?useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: password
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      SPRING_PROFILES_ACTIVE: docker
+      APP_VERIFICATION_TOPIC: user.identity
+      FIREBASE_ENABLED: "false"
+      SPRING_APPLICATION_NAME: user-service
+      LOGGING_FILE_NAME: /app/logs/user-service.log
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      - redpanda
+      - mysql-db
+    networks:
+      - app-net
+
+  notification-service:
+    build: ./notificationservice/notification-service
+    container_name: notification-service
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      - redpanda
+    networks:
+      - app-net
+
+  sos-service:
+    build: ./sosservice/sos-service
+    container_name: sos-service
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      - redpanda
+    networks:
+      - app-net
