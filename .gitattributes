@@ -1,0 +1,13 @@
+# Auto detect text files and normalize line endings to LF in repo
+* text=auto
+
+# Gradle & source files should always use LF
+*.java text eol=lf
+*.kt   text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
+*.sh   text eol=lf
+
+# Windows-only files can stay CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf

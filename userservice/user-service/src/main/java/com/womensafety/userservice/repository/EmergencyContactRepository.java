@@ -1,0 +1,12 @@
+package com.womensafety.userservice.repository;
+
+import com.womensafety.userservice.model.EmergencyContact;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+import java.util.UUID;
+
+public interface EmergencyContactRepository extends JpaRepository<EmergencyContact, Long> {
+    List<EmergencyContact> findByUserProfileId(UUID userProfileId);
+}
+

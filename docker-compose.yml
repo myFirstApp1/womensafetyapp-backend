@@ -1,0 +1,170 @@
+
+services:
+  # ---------- Infrastructure ----------
+
+  mysql-db:
+    image: mysql:8.0
+    container_name: mysql-db
+    environment:
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - mysql_data:/var/lib/mysql
+      #- ./infra/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql  
+    ports:
+      - "3310:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - app-net
+
+  
+
+  redpanda:
+    image: redpandadata/redpanda:v23.3.3
+    container_name: redpanda
+    command:
+      - redpanda start --overprovisioned --smp 1 --memory 1G --reserve-memory 0M --node-id 0 --check=false --kafka-addr PLAINTEXT://0.0.0.0:9092 --advertise-kafka-addr PLAINTEXT://redpanda:9092
+    ports:
+      - "9092:9092"
+      - "9644:9644"
+    networks:
+      - app-net
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    user: "0"
+    volumes:
+      - ./infra/loki/local-config.yaml:/etc/loki/local-config.yaml:ro
+    tmpfs:
+      - /loki:exec,mode=777     # ✅ Windows-safe in-memory storage
+    networks:
+      - app-net
+  grafana:
+    image: grafana/grafana:10.4.1
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    networks:
+      - app-net
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: promtail
+    depends_on:
+      - loki
+    volumes:
+      - ./infra/promtail/promtail-config.yaml:/etc/promtail/config.yaml
+      - ./logs:/app/logs
+    command: -config.file=/etc/promtail/config.yaml
+    networks:
+      - app-net
+
+  # ---------- Microservices ----------
+
+  auth-service:
+    build: ./womensafetyAuthservice/auth-service
+    container_name: auth-service
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/authdb?useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: password
+      LOGGING_FILE_NAME: /app/logs/auth-service.log
+      SPRING_PROFILES_ACTIVE: docker
+    volumes:
+      - ./logs/auth-service:/app/logs
+    depends_on:
+      loki:
+        condition: service_started
+      promtail:
+        condition: service_started
+      mysql-db:
+        condition: service_healthy
+    networks:
+      - app-net
+
+  user-service:
+    build: ./userservice/user-service
+    container_name: user-service
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/userdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: password
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      SPRING_PROFILES_ACTIVE: docker
+      APP_VERIFICATION_TOPIC: user.identity
+      FIREBASE_ENABLED: "false"
+      SPRING_APPLICATION_NAME: user-service
+      LOGGING_FILE_NAME: /app/logs/user-service.log
+    volumes:
+      - ./logs/user-service:/app/logs
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+      redpanda:
+        condition: service_started
+    networks:
+      - app-net
+
+  notification-service:
+    build: ./notificationservice/notification-service
+    container_name: notification-service
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      SPRING_PROFILES_ACTIVE: docker
+
+      # Mailtrap config
+      SPRING_MAIL_HOST: sandbox.smtp.mailtrap.io
+      SPRING_MAIL_PORT: 587
+      SPRING_MAIL_USERNAME: cf1f40c2497ac7
+      SPRING_MAIL_PASSWORD: c72c9703dafe0b
+      SPRING_MAIL_PROTOCOL: smtp
+      SPRING_MAIL_DEFAULT_ENCODING: UTF-8
+
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: "true"
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: "true"
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_REQUIRED: "true"
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_CONNECTIONTIMEOUT: 10000
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_TIMEOUT: 10000
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_WRITETIMEOUT: 10000
+    depends_on:
+      - redpanda
+    networks:
+      - app-net
+
+  sos-service:
+    build: ./sosservice/sos-service
+    container_name: sos-service
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      - redpanda
+    networks:
+      - app-net
+
+# ---------- PERSISTENT STORAGE ----------
+volumes:
+  mysql_data:
+  
+# ---------- Network (must be last) ----------
+networks:
+  app-net:
+    driver: bridge

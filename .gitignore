@@ -1,0 +1,65 @@
+# =========================
+# Logs (VERY IMPORTANT)
+# =========================
+logs/
+*.log
+*.log.*
+*.gz
+
+# =========================
+# Loki / Observability data
+# =========================
+loki/
+infra/loki/wal/
+infra/loki/chunks/
+infra/loki/index/
+
+# =========================
+# Gradle / Build
+# =========================
+.gradle/
+build/
+**/build/
+
+# =========================
+# IDE files
+# =========================
+.idea/
+.vscode/
+*.iml
+
+# =========================
+# OS files
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Environment / Secrets
+# =========================
+.env
+*.env
+application-prod.properties
+application-docker.properties
+
+# =========================
+# Zip / temp artifacts
+# =========================
+*.zip
+
+# =========================
+# Node / frontend (if any later)
+# =========================
+node_modules/
+
+# =========================
+# Docker volumes / data
+# =========================
+data/
+mysql-data/
+
+# Secrets
+.env
+*.env
+application-twilio.properties
+application-prod.properties

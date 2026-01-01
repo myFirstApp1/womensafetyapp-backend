@@ -1,0 +1,13 @@
+<configuration>
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>
+                {"timestamp":"%d{ISO8601}","level":"%p","service":"%X{spring.application.name}","traceId":"%X{sosTraceId}","thread":"%t","message":"%m"}%n
+            </pattern>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE" />
+    </root>
+</configuration>
