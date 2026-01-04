@@ -2,10 +2,7 @@ package com.womensafety.authservice.controller;
 
 import com.womensafety.authservice.advice.ResponseWrapper;
 import com.womensafety.authservice.common.OnCreateGroupValidator;
-import com.womensafety.authservice.dto.AuthRequest;
-import com.womensafety.authservice.dto.AuthResponse;
-import com.womensafety.authservice.dto.ForgotPasswordRequest;
-import com.womensafety.authservice.dto.RegisterRequest;
+import com.womensafety.authservice.dto.*;
 import com.womensafety.authservice.exception.InvalidCredentialsException;
 import com.womensafety.authservice.service.AuthService;
 import jakarta.annotation.PostConstruct;
@@ -55,6 +52,24 @@ public class AuthController {
                 )
         );
     }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<ResponseWrapper<String>> resetPassword(
+            @Valid @RequestBody ResetPasswordRequest request
+    ) {
+        authService.resetPassword(
+                request.getToken(),
+                request.getNewPassword()
+        );
+
+        return ResponseEntity.ok(
+                ResponseWrapper.success(
+                        "Password reset successful",
+                        null
+                )
+        );
+    }
+
     @PostMapping("/login")
     public ResponseEntity<ResponseWrapper<AuthResponse>> loginUser(@Validated(OnCreateGroupValidator.class) @RequestBody AuthRequest request) {
         log.info("POST /api/auth/login called for user: {}", request.getUsername());

@@ -8,6 +8,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.annotation.RetryableTopic;
+import org.springframework.retry.annotation.Backoff;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -18,7 +20,11 @@ public class NotificationConsumer {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final EmailService emailService;
     //private final WhatsAppService whatsAppService;
-
+    @RetryableTopic(
+            attempts = "5",
+            backoff = @Backoff(delay = 3000, multiplier = 2),
+            dltTopicSuffix = "-dlt"
+    )
     @KafkaListener(topics = "notifications.request", groupId = "notification-service-group")
     public void consumeNotificationRequest(NotificationRequest request) {
             System.out.println("Notification received: " + request);

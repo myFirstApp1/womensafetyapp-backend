@@ -7,10 +7,10 @@ import java.util.UUID;
 
 @Data
 public class UserVerifiedEvent {
-    private String eventId;       // UUID
+    private UUID eventId;       // UUID
     private String eventType;     // "USER_VERIFIED"
     private int version;          // 1
-    private Long userId;
+    private UUID userId;
     private Verification verification;
     private Instant occurredAt;
 
@@ -18,13 +18,13 @@ public class UserVerifiedEvent {
     public static class Verification {
         private String channel;   // "OTP"
         private String context;   // "PHONE" | "EMAIL"
-        private String otpTxnId;
+        private UUID otpTxnId;
         private Instant verifiedAt;
     }
 
-    public static UserVerifiedEvent from(Long userId, String otpTxnId, Instant ts) {
+    public static UserVerifiedEvent from(UUID userId, UUID otpTxnId, Instant ts) {
         UserVerifiedEvent e = new UserVerifiedEvent();
-        e.eventId = UUID.randomUUID().toString();
+        e.eventId = UUID.randomUUID();
         e.eventType = "USER_VERIFIED";
         e.version = 1;
         e.userId = userId;

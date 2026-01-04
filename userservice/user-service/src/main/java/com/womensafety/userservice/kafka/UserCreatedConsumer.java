@@ -7,6 +7,8 @@ import com.womensafety.userservice.repository.UserProfileRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.annotation.RetryableTopic;
+import org.springframework.retry.annotation.Backoff;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -15,9 +17,16 @@ import org.springframework.stereotype.Component;
 public class UserCreatedConsumer {
 
     private final UserProfileRepository userProfileRepository;
-
+    @RetryableTopic(
+            attempts = "3",
+            backoff = @Backoff(
+                    delay = 2000,
+                    multiplier = 2.0
+            ),
+            dltTopicSuffix = "-dlt"
+    )
     @KafkaListener(
-            topics = "${app.verification.topic}",
+            topics = "${app.user.created.topic}",
             groupId = "user-service",
             containerFactory = "userCreatedEventKafkaListenerContainerFactory"
     )

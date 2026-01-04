@@ -1,13 +1,21 @@
 package com.womensafety.authservice.otp;
 
 import com.tl.womensafety.common.events.UserVerifiedEvent;
+import com.womensafety.authservice.exception.InvalidOtpException;
+import com.womensafety.authservice.exception.OtpBlockedException;
+import com.womensafety.authservice.exception.OtpExpiredException;
+import com.womensafety.authservice.model.User;
 import com.womensafety.authservice.outbox.OutboxEvent;
 import com.womensafety.authservice.outbox.OutboxEventRepository;
 import com.womensafety.authservice.outbox.OutboxFactory;
+import com.womensafety.authservice.outbox.OutboxPublisher;
+import com.womensafety.authservice.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
@@ -23,34 +31,38 @@ import java.security.SecureRandom;
 @Service
 @RequiredArgsConstructor
 public class OtpService {
-
-    @Value("${app.otp.code-length:6}")        private int codeLength;
-    @Value("${app.otp.ttl-minutes:10}")       private int ttlMinutes;
-    @Value("${app.otp.max-attempts:5}")       private int maxAttempts;
-    @Value("${app.otp.dev-return-code:true}") private boolean devReturnCode;
+    @Value("${app.otp.code-length:6}")
+    private int codeLength;
+    @Value("${app.otp.ttl-minutes:10}")
+    private int ttlMinutes;
+    @Value("${app.otp.max-attempts:5}")
+    private int maxAttempts;
+    @Value("${app.otp.dev-return-code:true}")
+    private boolean devReturnCode;
 
     // also inject SecureRandom via constructor (add to @RequiredArgsConstructor list)
     private final SecureRandom secureRandom;
 
-
+    private final UserRepository userRepository;
     private final OtpChallengeRepository otpRepo;
     private final OutboxFactory outboxFactory;
+    private final OutboxPublisher outboxPublisher;
     private final OutboxEventRepository outboxEventRepository;
 
     @Transactional
     public ConfirmOtpResult confirmOtp(ConfirmOtpRequest req) {
         var challenge = otpRepo.findByTxnId(req.getTxnId())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid or unknown OTP transaction"));
+                .orElseThrow(() -> new InvalidOtpException("Invalid or unknown OTP transaction"));
 
         var now = Instant.now();
 
         if (challenge.isExpired(now)) {
             challenge.markExpired();
             otpRepo.save(challenge);
-            throw new IllegalStateException("OTP expired");
+            throw new OtpExpiredException("OTP has expired");
         }
         if (challenge.isBlocked()) {
-            throw new IllegalStateException("OTP attempts exceeded or challenge blocked");
+            throw new OtpBlockedException("OTP attempts exceeded or challenge blocked");
         }
         if (challenge.getStatus() == OtpStatus.VERIFIED) {
             // Idempotent success (no new event)
@@ -67,15 +79,24 @@ public class OtpService {
                 challenge.setStatus(OtpStatus.BLOCKED);
             }
             otpRepo.save(challenge);
-            throw new IllegalArgumentException("OTP incorrect");
+            throw new InvalidOtpException("OTP incorrect");
         }
 
         // Mark verified
         challenge.markVerified(now);
         otpRepo.save(challenge);
 
+        User user = userRepository.findById(challenge.getUserId())
+                .orElseThrow(() -> new IllegalStateException("User not found"));
+
+        if (!user.getIsVerified()) {
+            user.setIsVerified(true);
+            userRepository.save(user);
+        }
+
         // ===== Step 7: Outbox event in SAME TXN =====
         var event = UserVerifiedEvent.from(challenge.getUserId(), challenge.getTxnId(), now);
+
 
         var headers = new HashMap<String, String>();
         var traceId = MDC.get("traceId");
@@ -86,16 +107,65 @@ public class OtpService {
 
         OutboxEvent outbox = outboxFactory.build(
                 "USER",
-                String.valueOf(challenge.getUserId()),
+                challenge.getUserId(),
                 "USER_VERIFIED",
                 event.getEventId(),
                 event,
-                headers
+                headers,
+                "user.verified"
         );
-        outboxEventRepository.save(outbox);
+        if (!outboxEventRepository.existsByEventId(event.getEventId())) {
+            outboxEventRepository.save(outbox);
+        }
+        //outboxEventRepository.save(outbox);
         // ============================================
 
         return ConfirmOtpResult.success(challenge.getUserId(), challenge.getTxnId(), false);
+    }
+
+    @Transactional
+    public ResendOtpResponse resendOtp(ResendOtpRequest req) {
+
+        User user = userRepository.findByEmail(req.getEmail())
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        if (user.getIsVerified()) {
+            throw new IllegalStateException("User already verified");
+        }
+
+        // 🔴 Expire previous OTPs for same user + channel
+        otpRepo.expireAllActive(user.getId(), req.getChannel(), Instant.now());
+
+        // 🔐 Generate new OTP
+        String salt = UUID.randomUUID().toString().replace("-", "");
+        String otp = generateNumericCode(codeLength);
+        String hash = sha256(salt + otp);
+
+        UUID txnId = UUID.randomUUID();
+
+        OtpChallenge challenge = OtpChallenge.builder()
+                .id(UUID.randomUUID())
+                .userId(user.getId())
+                .channel(req.getChannel())
+                .destination(req.getEmail())
+                .codeHash(hash)
+                .salt(salt)
+                .expiresAt(Instant.now().plus(5, ChronoUnit.MINUTES))
+                .attempts(0)
+                .maxAttempts(5)
+                .status(OtpStatus.PENDING)
+                .txnId(txnId)
+                .build();
+
+        otpRepo.save(challenge);
+
+        // DEV only (remove in prod)
+        log.info("DEV ONLY OTP for txnId={} is {}", txnId, otp);
+
+        //  Outbox event (optional but recommended)
+        outboxPublisher.publishOtpEvent(user, challenge);
+
+        return new ResendOtpResponse(user.getId(), txnId);
     }
 
     private static String sha256(String s) {
@@ -115,7 +185,10 @@ public class OtpService {
         // If there is an active pending challenge, you can invalidate it (optional)
         otpRepo.findTopByUserIdAndChannelOrderByIdDesc(req.getUserId(), req.getChannel())
                 .filter(ch -> ch.getStatus() == OtpStatus.PENDING)
-                .ifPresent(ch -> { ch.markExpired(); otpRepo.save(ch); });
+                .ifPresent(ch -> {
+                    ch.markExpired();
+                    otpRepo.save(ch);
+                });
 
         String salt = UUID.randomUUID().toString().replace("-", "");
         String code = generateNumericCode(codeLength);
@@ -131,7 +204,7 @@ public class OtpService {
                 .attempts(0)
                 .maxAttempts(maxAttempts)
                 .status(OtpStatus.PENDING)
-                .txnId(UUID.randomUUID().toString())
+                .txnId(UUID.randomUUID())
                 .build();
 
         otpRepo.save(challenge);
@@ -139,13 +212,14 @@ public class OtpService {
         // TODO: integrate SMS/Email provider here (don’t send raw code in prod logs)
         log.info("OTP created for user={} channel={} dest={} txnId={}",
                 req.getUserId(), req.getChannel(), req.getDestination(), challenge.getTxnId());
-
+        log.info("DEV ONLY OTP for txnId={} is {}", challenge.getTxnId(), code);
         return new CreateOtpResult(
                 challenge.getTxnId(),
                 challenge.getExpiresAt(),
                 devReturnCode ? code : null
         );
     }
+
     private String generateNumericCode(int length) {
         // 10^len space, leading zeros allowed
         StringBuilder sb = new StringBuilder(length);
@@ -156,19 +230,22 @@ public class OtpService {
     // === response type
     @lombok.Value
     public static class CreateOtpResult {
-        String txnId;
+        UUID txnId;
         Instant expiresAt;
         String devCode;  // null when devReturnCode=false
     }
+
     // Lightweight response type for controller
     @lombok.Value
     public static class ConfirmOtpResult {
-        Long userId;
-        String otpTxnId;
+        UUID userId;
+        UUID otpTxnId;
         boolean alreadyVerified;
 
-        public static ConfirmOtpResult success(Long uid, String txn, boolean already) {
+        public static ConfirmOtpResult success(UUID uid, UUID txn, boolean already) {
             return new ConfirmOtpResult(uid, txn, already);
         }
+
+
     }
 }

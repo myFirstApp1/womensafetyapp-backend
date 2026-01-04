@@ -4,6 +4,8 @@ import com.tl.womensafety.common.events.EmailVerificationEvent;
 import com.womensafety.notificationservice.service.EmailService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.annotation.RetryableTopic;
+import org.springframework.retry.annotation.Backoff;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -14,6 +16,11 @@ public class EmailVerificationConsumer {
     public EmailVerificationConsumer(EmailService emailService) {
         this.emailService = emailService;
     }
+    @RetryableTopic(
+            attempts = "5",
+            backoff = @Backoff(delay = 3000, multiplier = 2),
+            dltTopicSuffix = "-dlt"
+    )
     @KafkaListener(
             topics = "send.email.verification",
             groupId = "notification-service-group"

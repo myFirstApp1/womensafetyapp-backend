@@ -30,14 +30,23 @@ public class GlobalExceptionHandler {
                 .body(ResponseWrapper.error("Something failed"));
 
     }
-
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ResponseWrapper<Void>> handleIllegalState(IllegalStateException ex) {
+        return ResponseEntity.badRequest()
+                .body(ResponseWrapper.error(ex.getMessage()));
+    }
+    @ExceptionHandler(InvalidResetTokenException.class)
+    public ResponseEntity<ResponseWrapper<Object>> handleInvalidToken(InvalidResetTokenException ex) {
+        log.error("Client error occurred: ", ex);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ResponseWrapper.error(ex.getMessage()));
+    }
     @ExceptionHandler(HttpServerErrorException.class)
     public ResponseEntity<ResponseWrapper<Object>> handleHttpServerError(HttpServerErrorException ex, WebRequest request) {
         log.error("Server error occurred: ", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ResponseWrapper.error("Something failed"));
     }
-
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ResponseWrapper<Object>> handleConstraintViolation(ConstraintViolationException ex, WebRequest request) {
         log.error("Validation failed: ", ex);
@@ -45,6 +54,24 @@ public class GlobalExceptionHandler {
                 .body(ResponseWrapper.error("Something failed"));
     }
 
+    @ExceptionHandler(OtpExpiredException.class)
+    public ResponseEntity<ResponseWrapper<Void>> handleOtpExpired(OtpExpiredException ex) {
+        //log.error("Validation failed: ", ex);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ResponseWrapper.error(ex.getMessage()));
+    }
+    @ExceptionHandler(OtpBlockedException.class)
+    public ResponseEntity<ResponseWrapper<Void>> handleOtpBlockedException(OtpBlockedException ex) {
+        //log.error("Validation failed: ", ex);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ResponseWrapper.error(ex.getMessage()));
+    }
+    @ExceptionHandler(InvalidOtpException.class)
+    public ResponseEntity<ResponseWrapper<Void>> handleOtpInvalid(InvalidOtpException ex) {
+        log.warn("OTP validation failed: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ResponseWrapper.error(ex.getMessage()));
+    }
     @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
     public ResponseEntity<ResponseWrapper<Object>> handleUnreadableMessage(HttpMessageNotReadableException ex, WebRequest request) {
         log.error("Malformed JSON request: ", ex);
@@ -73,7 +100,6 @@ public class GlobalExceptionHandler {
                 ResponseWrapper.error("Validation Failed", data)
         );
     }
-
 
     @ExceptionHandler(java.net.SocketTimeoutException.class)
     public ResponseEntity<ResponseWrapper<Object>> handleSocketTimeout(SocketTimeoutException ex, WebRequest request) {

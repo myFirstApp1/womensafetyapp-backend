@@ -4,6 +4,8 @@ import com.tl.womensafety.common.events.PasswordResetEvent;
 import com.womensafety.notificationservice.service.EmailService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.annotation.RetryableTopic;
+import org.springframework.retry.annotation.Backoff;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -14,6 +16,11 @@ public class PasswordResetEmailConsumer {
     public PasswordResetEmailConsumer(EmailService emailService) {
         this.emailService = emailService;
     }
+    @RetryableTopic(
+            attempts = "5",
+            backoff = @Backoff(delay = 3000, multiplier = 2),
+            dltTopicSuffix = "-dlt"
+    )
     @KafkaListener(
             topics = "${app.email.password-reset.topic}",
             groupId = "${spring.kafka.consumer.group-id}"
@@ -27,6 +34,7 @@ public class PasswordResetEmailConsumer {
                 "http://localhost:8080/reset-password?token=" + event.getToken();
 
         // 2️⃣ Send (mock) email
+
         emailService.sendEmail(
                 event.getEmail(),
                 "Reset your password – Women Safety App",
