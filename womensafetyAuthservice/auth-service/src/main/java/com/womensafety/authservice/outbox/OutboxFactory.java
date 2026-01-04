@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.Map;
+import java.util.UUID;
 
 public class OutboxFactory {
 
@@ -14,11 +15,11 @@ public class OutboxFactory {
     }
 
     public OutboxEvent build(String aggregateType,
-                             String aggregateId,
+                             UUID aggregateId,
                              String eventType,
-                             String eventId,
+                             UUID eventId,
                              Object payloadObj,
-                             Map<String, String> headers) {
+                             Map<String, String> headers, String topic) {
         try {
             String payload = objectMapper.writeValueAsString(payloadObj);
             String headersJson = headers == null ? null : objectMapper.writeValueAsString(headers);
@@ -29,6 +30,7 @@ public class OutboxFactory {
                     .eventType(eventType)
                     .payload(payload)
                     .headersJson(headersJson)
+                    .topic(topic)
                     .build();
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Failed to serialize outbox payload/headers", e);

@@ -34,7 +34,7 @@ class AuthControllerTest {
     void testRegisterUserDirectly() {
         // Given
         RegisterRequest request = new RegisterRequest("john", "john@example.com", "pass123");
-        AuthResponse expected = new AuthResponse("jwt-token", "User registered successfully", UUID.randomUUID());
+        AuthResponse expected = new AuthResponse("jwt-token", "User registered successfully", UUID.randomUUID(),"123458");
 
         when(authService.register(request)).thenReturn(expected);
 
@@ -52,7 +52,7 @@ class AuthControllerTest {
     void testLoginUserSuccess() {
         // Given
         AuthRequest request = new AuthRequest("john","pass123");
-        AuthResponse expected = new AuthResponse("jwt-login-token", "Login successfully",UUID.randomUUID());
+        AuthResponse expected = new AuthResponse("jwt-login-token", "Login successfully",UUID.randomUUID(),null);
 
         when(authService.login(any(AuthRequest.class))).thenReturn(expected);
 

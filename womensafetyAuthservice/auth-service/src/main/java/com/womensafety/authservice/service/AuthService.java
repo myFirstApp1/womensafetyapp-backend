@@ -6,8 +6,12 @@ import com.tl.womensafety.common.events.UserCreatedEvent;
 import com.womensafety.authservice.dto.RegisterRequest;
 import com.womensafety.authservice.exception.EmailAlreadyExistsException;
 import com.womensafety.authservice.exception.InvalidCredentialsException;
+import com.womensafety.authservice.exception.InvalidResetTokenException;
 import com.womensafety.authservice.model.PasswordResetToken;
 import com.womensafety.authservice.model.VerificationToken;
+import com.womensafety.authservice.otp.OtpChannel;
+import com.womensafety.authservice.otp.OtpCreateRequest;
+import com.womensafety.authservice.otp.OtpService;
 import com.womensafety.authservice.repository.PasswordResetTokenRepository;
 import com.womensafety.authservice.repository.VerificationTokenRepository;
 import jakarta.transaction.Transactional;
@@ -36,6 +40,8 @@ public class AuthService {
     @Autowired
     UserRepository userRepository;
     @Autowired
+    OtpService otpService;
+    @Autowired
     PasswordResetTokenRepository tokenRepository;
     @Autowired
     VerificationTokenRepository verificationTokenRepository;
@@ -45,7 +51,7 @@ public class AuthService {
     JwtUtil jwtUtil;
     @Autowired
     KafkaTemplate<String, Object> kafkaTemplate;
-    @Value("${app.verification.topic}")
+    @Value("${app.user.created.topic}")
     private String topicName;
     @Value("${app.email.password-reset.topic:send.email.password-reset}")
     private String emailTopic;
@@ -62,27 +68,18 @@ public class AuthService {
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole("ROLE_USER");
-        // ✅ Temporarily mark as verified (until SMTP ready)
-        user.setIsVerified(true);
+        // Temporarily mark as verified (until SMTP ready)
+        user.setIsVerified(false);
         User saved = userRepository.save(user);
         log.info("User '{}' registered successfully", request.getUsername());
 
-        // Generate token
-        String tokenEmail = UUID.randomUUID().toString();
-        createVerificationToken(saved, tokenEmail);
-        log.info("TOPIC = {}", emailTopicName);
-// TODO: Enable email verification once production SMTP is configured
-
-// Publish event for Notification Service
-        log.info("Publishing email verification event for {} with token {}", saved.getEmail(), tokenEmail);
-        kafkaTemplate.send(emailTopicName, new EmailVerificationEvent(
-                UUID.randomUUID(),        // eventId
-                saved.getId(),            // userId (UUID)
-                saved.getEmail(),
-                tokenEmail,
-                Instant.now() ,       //  occurredAt\
-                Instant.now()
-        ));
+        // CREATE OTP
+        OtpCreateRequest otpReq = new OtpCreateRequest(
+                saved.getId(),
+                OtpChannel.EMAIL,
+                saved.getEmail()
+        );
+        OtpService.CreateOtpResult otp = otpService.createOtp(otpReq);
         UserCreatedEvent event = new UserCreatedEvent(
                 UUID.randomUUID(),        // eventId
                 saved.getId(),            // userId (UUID)
@@ -92,11 +89,11 @@ public class AuthService {
                 Instant.now(),
                 saved.getUsername()
         );
-        kafkaTemplate.send(topicName, event);
+        publishEvent(topicName, event);
         log.info("Published user.created event for userId {}", saved.getId());
 
-        String token = jwtUtil.generateToken(user.getUsername());
-        return new AuthResponse(token, "User registered successfully", user.getId());
+       // String token = jwtUtil.generateToken(user.getUsername());
+        return new AuthResponse(null, "OTP sent to your email", user.getId(),otp.getTxnId());
     }
 
     public AuthResponse login(AuthRequest request) {
@@ -106,14 +103,16 @@ public class AuthService {
                     log.warn("Login failed: user '{}' not found", request.getUsername());
                     return new UsernameNotFoundException("User not found");
                 });
-
+        if (!user.getIsVerified()) {
+            throw new InvalidCredentialsException("Please verify OTP before login");
+        }
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             log.warn("Login failed: invalid credentials for user '{}'", request.getUsername());
             throw new InvalidCredentialsException("Invalid username or password");
         }
         log.info("Login successful for user: {}", request.getUsername());
         String token = jwtUtil.generateToken(user.getUsername());
-        return new AuthResponse(token, "Login successful", user.getId());
+        return new AuthResponse(token, "Login successful", user.getId(),null);
     }
 
 
@@ -176,7 +175,52 @@ public class AuthService {
                 Instant.now()
         );
         log.info("Publishing PasswordResetEvent to topic {}", emailTopic);
-        kafkaTemplate.send(emailTopic, event);
+        publishEvent(emailTopic, event);
     }
+
+    public void resetPassword(String token, String newPassword) {
+
+        PasswordResetToken resetToken = tokenRepository
+                .findByToken(token)
+                .orElseThrow(() ->
+                        new InvalidResetTokenException("Password reset token is invalid or expired"));
+
+        // Check if already used
+        if (resetToken.isUsed()) {
+            throw new InvalidResetTokenException("Password reset token already used");
+        }
+
+        // Check expiry
+        if (resetToken.getExpiryDate().isBefore(LocalDateTime.now())) {
+            throw new InvalidResetTokenException("Password reset token is invalid or expired");
+        }
+
+        // Update password
+        User user = resetToken.getUser();
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        // Mark token as used
+        resetToken.setUsed(true);
+        tokenRepository.save(resetToken);
+
+        log.info("Password reset successful for user: {}", user.getEmail());
+    }
+
+    private void publishEvent(String topic, Object event) {
+        kafkaTemplate.send(topic, event)
+                .whenComplete((result, ex) -> {
+                    if (ex != null) {
+                        log.error("Failed to publish Kafka event to topic {} : {}", topic, ex.getMessage(), ex);
+
+                        // IMPORTANT
+                        // In production, persist to OUTBOX table here
+                        // For now, logging is enough
+                    } else {
+                        log.info("Kafka event published to topic {}", topic);
+                    }
+                });
+    }
+
 }
 

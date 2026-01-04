@@ -22,7 +22,7 @@ class AuthResponseTest {
 
     @Test
     void testAllArgsConstructor() {
-        response = new AuthResponse("Jwt Token","Login Successfully", UUID.randomUUID());
+        response = new AuthResponse("Jwt Token","Login Successfully", UUID.randomUUID(),"123456");
         assertEquals("Login Successfully", response.getMessage());
         assertEquals("Jwt Token", response.getToken());
     }

@@ -5,6 +5,7 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.Instant;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -22,12 +23,12 @@ import java.time.Instant;
 public class OtpChallenge {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue
+    @Column(columnDefinition = "BINARY(16)")
+    private UUID id;
 
-    // User in your system (from Auth DB or cross-ref to User Service)
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
+    @Column(name = "user_id", nullable = false, columnDefinition = "BINARY(16)")
+    private UUID userId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "channel", nullable = false, length = 16)
@@ -58,8 +59,8 @@ public class OtpChallenge {
     private OtpStatus status;
 
     // For audit/tracing; we’ll also propagate this in the event as otpTxnId
-    @Column(name = "txn_id", nullable = false, length = 36, unique = true)
-    private String txnId;
+    @Column(name = "txn_id", nullable = false,unique = true, columnDefinition = "BINARY(16)")
+    private UUID txnId;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false, nullable = false)

@@ -1,9 +1,12 @@
 package com.womensafety.authservice.otp;
 
+import com.womensafety.authservice.advice.ResponseWrapper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth/otp")
@@ -22,12 +25,19 @@ public class OtpController {
                 result.isAlreadyVerified()
         ));
     }
+    @PostMapping("/resend")
+    public ResponseEntity<ResponseWrapper<ResendOtpResponse>> resendOtp(
+            @Valid @RequestBody ResendOtpRequest request) {
+
+        ResendOtpResponse response = otpService.resendOtp(request);
+        return ResponseEntity.ok(ResponseWrapper.success("OTP resent successfully", response));
+    }
 
     @lombok.Value
     static class VerifyResponse {
         String message;
-        Long userId;
-        String otpTxnId;
+        UUID userId;
+        UUID otpTxnId;
         boolean alreadyVerified;
     }
 
@@ -45,7 +55,7 @@ public class OtpController {
     @lombok.Value
     static class CreateResponse {
         String message;
-        String txnId;
+        UUID txnId;
         String expiresAt;
         String devOtp;  // will be null if app.otp.dev-return-code=false
     }

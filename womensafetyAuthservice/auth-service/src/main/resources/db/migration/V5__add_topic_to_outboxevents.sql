@@ -1,0 +1,2 @@
+ALTER TABLE outbox_events
+ADD COLUMN topic VARCHAR(128) NOT NULL;

@@ -5,6 +5,7 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.Instant;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -25,17 +26,18 @@ import java.time.Instant;
 public class OutboxEvent {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue
+    @Column(columnDefinition = "BINARY(16)")
+    private UUID id;
 
-    @Column(name = "event_id", nullable = false, length = 36)
-    private String eventId; // UUID string
+    @Column(name = "event_id", nullable = false, columnDefinition = "BINARY(16)")
+    private UUID eventId;
 
     @Column(name = "aggregate_type", nullable = false, length = 64)
     private String aggregateType; // e.g., "USER"
 
-    @Column(name = "aggregate_id", nullable = false, length = 64)
-    private String aggregateId;   // e.g., userId as string
+    @Column(name = "aggregate_id", nullable = false, columnDefinition = "BINARY(16)")
+    private UUID aggregateId;
 
     @Column(name = "event_type", nullable = false, length = 64)
     private String eventType;     // e.g., "USER_VERIFIED"
@@ -55,6 +57,8 @@ public class OutboxEvent {
 
     @Column(name = "published_at")
     private Instant publishedAt;
+    @Column(name = "topic", nullable = false)
+    private String topic;
 
     public boolean isPublished() {
         return publishedAt != null;

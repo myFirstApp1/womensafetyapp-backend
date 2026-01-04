@@ -32,7 +32,7 @@ public class EmergencyContactService {
         if (existingContacts.size() >= 15) {
             throw new ValidationException("Cannot add more than 15 emergency contacts");
         }
-
+        String normalizedPhone = normalizePhone(req.getPhoneNumber());
         // Rule: Duplicate phone not allowed
         boolean duplicatePhone = existingContacts.stream()
                 .anyMatch(c -> c.getPhoneNumber().equals(req.getPhoneNumber()));
@@ -41,7 +41,7 @@ public class EmergencyContactService {
         }
         EmergencyContact contact = EmergencyContact.builder()
                 .name(req.getName())
-                .phoneNumber(req.getPhoneNumber())
+                .phoneNumber(normalizedPhone)
                 .relation(req.getRelation())
                 .userProfile(profile)
                 .build();
@@ -74,12 +74,39 @@ public class EmergencyContactService {
                 .collect(Collectors.toList());
     }
 
-    public EmergencyContactDto updateContact(Long contactId, EmergencyContactRequestDto req) {
+    public EmergencyContactDto updateContact(
+            UUID userId,
+            Long contactId,
+            EmergencyContactRequestDto req) {
+
+        UserProfile profile = userProfileRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Profile not found for userId: " + userId));
+
         EmergencyContact contact = contactRepository.findById(contactId)
                 .orElseThrow(() -> new ResourceNotFoundException("Contact not found"));
 
+        // Ownership check
+        if (!contact.getUserProfile().getId().equals(profile.getId())) {
+            throw new ValidationException("Cannot update contact not belonging to user");
+        }
+
+        String normalizedPhone = normalizePhone(req.getPhoneNumber());
+
+        // Duplicate check excluding self
+        boolean duplicate = contactRepository
+                .findByUserProfileId(profile.getId())
+                .stream()
+                .anyMatch(c ->
+                        !c.getId().equals(contactId) &&
+                                c.getPhoneNumber().equals(normalizedPhone)
+                );
+
+        if (duplicate) {
+            throw new ValidationException("Phone number already exists in emergency contacts");
+        }
+
         contact.setName(req.getName());
-        contact.setPhoneNumber(req.getPhoneNumber());
+        contact.setPhoneNumber(normalizedPhone);
         contact.setRelation(req.getRelation());
 
         EmergencyContact updated = contactRepository.save(contact);
@@ -98,5 +125,23 @@ public class EmergencyContactService {
                 .stream()
                 .map(EmergencyContact::getPhoneNumber)
                 .toList();
+    }
+
+    private String normalizePhone(String phone) {
+        if (phone == null) {
+            throw new ValidationException("Phone number is required");
+        }
+
+        phone = phone.replaceAll("\\s+", "");
+
+        if (phone.startsWith("+91") && phone.length() == 13) {
+            return phone;
+        }
+
+        if (phone.matches("\\d{10}")) {
+            return "+91" + phone;
+        }
+
+        throw new ValidationException("Invalid phone number format");
     }
 }

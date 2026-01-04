@@ -63,3 +63,7 @@ mysql-data/
 *.env
 application-twilio.properties
 application-prod.properties
+
+# Grafana runtime data
+infra/grafana/grafana.db
+infra/grafana/plugins/

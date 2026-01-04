@@ -6,10 +6,11 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
-public interface OutboxEventRepository extends JpaRepository<OutboxEvent, Long> {
+public interface OutboxEventRepository extends JpaRepository<OutboxEvent, UUID> {
 
-    boolean existsByEventId(String eventId);
+    boolean existsByEventId(UUID eventId);
 
     /**
      * Fetch a small batch of unpublished rows, locking them to this publisher worker.

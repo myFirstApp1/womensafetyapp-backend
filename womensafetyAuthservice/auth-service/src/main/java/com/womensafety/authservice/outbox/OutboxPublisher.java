@@ -2,6 +2,9 @@ package com.womensafety.authservice.outbox;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.womensafety.authservice.model.User;
+import com.womensafety.authservice.otp.OtpChallenge;
+import com.womensafety.authservice.otp.OtpResentEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -16,6 +19,7 @@ import org.springframework.util.MimeTypeUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -25,11 +29,9 @@ import java.util.Map;
 public class OutboxPublisher {
 
     private final OutboxEventRepository repository;
+    private final OutboxFactory outboxFactory;
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper;
-
-    @Value("${app.verification.topic:user.identity}")
-    private String topic;
 
     @Value("${app.outbox.batch-size:50}")
     private int batchSize;
@@ -44,7 +46,7 @@ public class OutboxPublisher {
         for (OutboxEvent evt : batch) {
             try {
                 ProducerRecord<String, String> record =
-                        new ProducerRecord<>(topic, evt.getAggregateId(), evt.getPayload());
+                        new ProducerRecord<>(evt.getTopic(), evt.getAggregateId().toString(), evt.getPayload());
 
                 // Apply headers if present
                 if (evt.getHeadersJson() != null) {
@@ -61,11 +63,37 @@ public class OutboxPublisher {
                 kafkaTemplate.send(record).get(); // wait to ensure we can safely mark published
                 evt.setPublishedAt(Instant.now());
                 repository.save(evt);
-                log.info("Published outbox event {} to topic {} key={}", evt.getEventId(), topic, evt.getAggregateId());
+                log.info("Published outbox event {} to topic {} key={}", evt.getEventId(), evt.getTopic(), evt.getAggregateId());
             } catch (Exception ex) {
                 // Leave published_at = null → will retry next tick
                 log.error("Failed to publish outbox event {}: {}", evt.getEventId(), ex.getMessage(), ex);
             }
         }
     }
+
+    public void publishOtpEvent(User user, OtpChallenge challenge) {
+
+        Map<String, String> headers = new HashMap<>();
+        headers.put("event-type", "OTP_RESENT");
+
+        OtpResentEvent event = OtpResentEvent.from(
+                user.getId(),
+                challenge.getTxnId(),
+                challenge.getChannel().toString(),
+                challenge.getDestination()
+        );
+
+        OutboxEvent outbox = outboxFactory.build(
+                "USER",
+                user.getId(),
+                "OTP_RESENT",
+                event.getEventId(),
+                event,
+                headers,
+                "send.email.verification"
+        );
+
+        repository.save(outbox);
+    }
+
 }
