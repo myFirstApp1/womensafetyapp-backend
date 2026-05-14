@@ -1,29 +1,69 @@
--- ==============================
--- ACTIVE SAFETY SESSIONS TABLE
--- ==============================
-
 CREATE TABLE active_safety_sessions (
+
     user_id BINARY(16) PRIMARY KEY,
 
     device_id VARCHAR(100),
 
     last_ping_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    is_protected TINYINT(1) NOT NULL DEFAULT 0,
 
     battery_level INT,
 
     last_latitude DECIMAL(10,6),
     last_longitude DECIMAL(10,6),
 
+    -- =========================================
+    -- DEVICE INTELLIGENCE
+    -- =========================================
+
+    last_heart_rate INT,
+
+    movement_score INT,
+
+    is_device_worn TINYINT(1) DEFAULT 1,
+
+    last_bluetooth_seen_at TIMESTAMP NULL,
+
+    -- =========================================
+    -- STATE MACHINE
+    -- =========================================
+
+    status VARCHAR(30) DEFAULT 'ACTIVE',
+
+    pause_type VARCHAR(30) NULL,
+
+    confirmation_status VARCHAR(30) DEFAULT 'NONE',
+
+    warning_triggered_at TIMESTAMP NULL,
+
+    auto_resume_at TIMESTAMP NULL,
+
+    -- =========================================
+    -- TRACKING
+    -- =========================================
+
+    tracking_id VARCHAR(100),
+
+    -- =========================================
+    -- EMERGENCY FLAGS
+    -- =========================================
+
     emergency_triggered TINYINT(1) DEFAULT 0,
+
     emergency_contact_notified TINYINT(1) DEFAULT 0,
+
+    -- =========================================
+    -- SESSION
+    -- =========================================
 
     session_start_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- ==============================
+-- =========================================
 -- INDEXES
--- ==============================
+-- =========================================
 
 CREATE INDEX idx_heartbeat_check
-ON active_safety_sessions(is_protected, last_ping_time);
+ON active_safety_sessions(status, last_ping_time);
+
+CREATE INDEX idx_tracking_id
+ON active_safety_sessions(tracking_id);

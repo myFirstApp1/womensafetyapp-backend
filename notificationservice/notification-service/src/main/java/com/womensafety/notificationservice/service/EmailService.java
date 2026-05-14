@@ -11,9 +11,6 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @Slf4j
 public class EmailService {
-
-
-
     @Value("${app.email.mock:true}")
     private boolean mock;
 

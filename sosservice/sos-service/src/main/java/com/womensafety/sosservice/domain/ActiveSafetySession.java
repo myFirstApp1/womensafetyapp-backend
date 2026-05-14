@@ -13,29 +13,101 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class ActiveSafetySession {
 
     @Id
-    @Column(name = "user_id", columnDefinition = "BINARY(16)")
+    @Column(name = "user_id", nullable = false, columnDefinition = "BINARY(16)")
     private UUID userId;
 
+    @Column(name = "device_id")
     private String deviceId;
 
+    // 🔹 Heartbeat tracking
+    @Column(name = "last_ping_time", nullable = false)
     private LocalDateTime lastPingTime;
 
-    private boolean isProtected;
-
+    // 🔹 Battery info
+    @Column(name = "battery_level")
     private Integer batteryLevel;
 
+    // 🔹 Location
     @Column(name = "last_latitude", precision = 10, scale = 6)
     private BigDecimal lastLatitude;
 
     @Column(name = "last_longitude", precision = 10, scale = 6)
     private BigDecimal lastLongitude;
 
-    private boolean emergencyTriggered;
+    // 🔹 Emergency flags
+    @Column(name = "emergency_triggered")
+    @Builder.Default
+    private Boolean emergencyTriggered = false;
 
-    private boolean emergencyContactNotified;
+    @Column(name = "emergency_contact_notified")
+    @Builder.Default
+    private Boolean emergencyContactNotified = false;
 
+    // 🔹 Session start
+    @Column(name = "session_start_time")
     private LocalDateTime sessionStartTime;
+
+    // =========================
+    // 🚀 NEW FIELDS (CORE LOGIC)
+    // =========================
+
+    // 🔥 Main state machine
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private SessionStatus status;
+
+    // 🔹 Why paused
+    @Enumerated(EnumType.STRING)
+    @Column(name = "pause_type")
+    private PauseType pauseType;
+
+    // 🔹 Auto resume support
+    @Column(name = "auto_resume_at")
+    private LocalDateTime autoResumeAt;
+
+    // 🔹 Device worn or not
+    @Column(name = "is_device_worn")
+    @Builder.Default
+    private Boolean isDeviceWorn = true;
+
+    // 🔹 Bluetooth tracking
+    @Column(name = "last_bluetooth_seen_at")
+    private LocalDateTime lastBluetoothSeenAt;
+
+    @Column(name = "warning_triggered_at")
+    private LocalDateTime warningTriggeredAt;
+
+    @Column(name = "last_heart_rate")
+    private Integer lastHeartRate;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "confirmation_status")
+    private ConfirmationStatus confirmationStatus;
+
+    @Column(name = "movement_score")
+    private Integer movementScore;
+
+    @Column(name = "tracking_id")
+    private String trackingId;
+
+    // =========================
+    // 🧠 DEFAULT HELPER METHODS
+    // =========================
+
+    public boolean isActive() {
+        return SessionStatus.ACTIVE.equals(this.status);
+    }
+
+    public boolean isPaused() {
+        return SessionStatus.PAUSED_MANUAL.equals(this.status)
+                || SessionStatus.PAUSED_OFF_BODY.equals(this.status);
+    }
+
+    public boolean isInDanger() {
+        return SessionStatus.IN_DANGER.equals(this.status);
+    }
 }

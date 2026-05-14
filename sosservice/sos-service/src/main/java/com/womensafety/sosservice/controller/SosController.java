@@ -6,6 +6,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.concurrent.ExecutionException;
+
 @Slf4j
 @RestController
 @RequestMapping("/api/sos")
@@ -29,7 +31,7 @@ public class SosController {
 
     @PostMapping("/trigger/whatsapp/{userId}")
     public ResponseEntity<String> triggerWhatsAppSOS(@PathVariable String userId,
-                                             @RequestParam(name = "location") String currentLocation) {
+                                             @RequestParam(name = "location") String currentLocation) throws ExecutionException, InterruptedException {
         log.info("📲 WhatsApp SOS triggered for user {} at {}", userId, currentLocation);
         producerService.sendAutomaticSOS(userId,currentLocation);
         return ResponseEntity.ok(" SOS alert triggered for user " + userId);
@@ -37,7 +39,7 @@ public class SosController {
 
     @PostMapping("/notify/{userId}")
     public ResponseEntity<Void> notifyUser(@PathVariable String userId,
-                                       @RequestParam(name = "location") String currentLocation) {
+                                       @RequestParam(name = "location") String currentLocation) throws ExecutionException, InterruptedException {
         producerService.sendAutomaticSOS(userId,currentLocation);
         return ResponseEntity.accepted().build();
     }

@@ -16,5 +16,5 @@ public record NotificationRequest(
         Map<String, String> metadata, // e.g., placeholders, tracking ids
         String traceId
 ) implements Serializable {
-    public enum Channel { EMAIL, SMS, PUSH, WHATSAPP  }
+    public enum Channel { EMAIL, SMS, PUSH, WHATSAPP, VOICE  }
 }

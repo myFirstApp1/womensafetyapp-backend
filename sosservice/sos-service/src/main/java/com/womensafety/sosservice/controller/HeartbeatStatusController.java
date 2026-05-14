@@ -39,7 +39,7 @@ public class HeartbeatStatusController {
             @RequestParam(required = false) BigDecimal lat,
             @RequestParam(required = false) BigDecimal lon) {
         log.debug("HEARTBEAT_API | heartbeat | userId={}", userId);
-        heartbeatCheckService.ping(userId, battery, lat, lon);
+        heartbeatCheckService.ping(userId);
         return ResponseEntity.ok("Heartbeat updated for user: " + userId);
     }
     /**
@@ -80,5 +80,31 @@ public class HeartbeatStatusController {
     @GetMapping("/sessions")
     public List<ActiveSafetySession> getAllSessions() {
         return heartbeatCheckService.getProtectedUsers();
+    }
+
+    @PostMapping("/pause")
+    public ResponseEntity<String> pause(
+            @RequestParam UUID userId,
+            @RequestParam(defaultValue = "30") int minutes) {
+
+        heartbeatCheckService.pauseProtection(userId, minutes);
+
+        return ResponseEntity.ok("Protection paused for " + minutes + " minutes");
+    }
+
+    @PostMapping("/resume")
+    public ResponseEntity<String> resume(@RequestParam UUID userId) {
+
+        heartbeatCheckService.resumeProtection(userId);
+
+        return ResponseEntity.ok("Protection resumed");
+    }
+
+    @PostMapping("/confirm-safe")
+    public ResponseEntity<String> confirmSafe(@RequestParam UUID userId) {
+
+        heartbeatCheckService.confirmUserSafe(userId);
+
+        return ResponseEntity.ok("User marked safe");
     }
 }

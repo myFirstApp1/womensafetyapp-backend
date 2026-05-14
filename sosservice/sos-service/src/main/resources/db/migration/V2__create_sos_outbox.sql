@@ -1,0 +1,8 @@
+CREATE TABLE sos_outbox (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BINARY(16),
+    location VARCHAR(255),
+    status VARCHAR(20), -- PENDING, SENT, FAILED
+    retry_count INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

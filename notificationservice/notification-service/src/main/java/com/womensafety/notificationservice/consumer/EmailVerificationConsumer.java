@@ -27,11 +27,8 @@ public class EmailVerificationConsumer {
     )
     public void consume(EmailVerificationEvent event) {
         log.info("Received EmailVerificationEvent: {}", event);
-
-
         // TODO: Build verification link
         String verificationLink = "http://localhost:8080/api/auth/verify?token=" + event.token();
-
         // TODO: Send email (use SMTP or mock for now)
         log.info("Verification email would be sent to {} with link: {}", event.email(), verificationLink);
         //log.info("MOCK EMAIL → To: {}, Subject: {}, Body: {}", event.email(), "Verify your account - Women Safety App", verificationLink);

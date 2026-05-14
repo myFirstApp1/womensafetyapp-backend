@@ -13,6 +13,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
 import org.slf4j.MDC;
 @Slf4j
 @Service
@@ -23,43 +24,121 @@ public class NotificationProducer {
     private final UserServiceClient userServiceClient;
 
     private static final String SOS_TOPIC = "sos-topic";
+    private static final String SOS_TOPIC_DLT = "sos-topic-dlt";
 
+    /**
+     * 🚨 MAIN SOS TRIGGER METHOD
+     */
     public void sendAutomaticSOS(String userId, String currentLocation) {
-        log.info(" Triggering SOS for userId={} at location={}", userId, currentLocation);
+
         String sosTraceId = UUID.randomUUID().toString();
-        MDC.put("sosTraceId", sosTraceId);
 
-        List<String> contacts = userServiceClient.getEmergencyContacts(userId);
-        if (contacts.isEmpty()) {
-            log.warn(" No emergency contacts found for userId={}", userId);
-            return;
-        }
+        try {
+            MDC.put("sosTraceId", sosTraceId);
 
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        String message = String.format(
-                " Emergency detected!\nUser might be in danger.\n Location: %s\n Time: %s\nPlease check immediately.",
-                currentLocation, timestamp
-        );
-        String subject = " SOS Alert – Immediate Attention Required";
+            log.info("🚨 Triggering SOS for userId={} at location={}", userId, currentLocation);
 
-        for (String contactNumber : contacts) {
-            for (NotificationRequest.Channel channel : NotificationRequest.Channel.values()) {
-                NotificationRequest request = new NotificationRequest(
-                        UUID.fromString(userId),
-                        channel,
-                        subject,
-                        message,
-                        null,
-                        Map.of("to", contactNumber),sosTraceId
+            // 🔹 Fetch emergency contacts
+            List<String> contacts = userServiceClient.getEmergencyContacts(userId);
+
+            if (contacts == null || contacts.isEmpty()) {
+                log.warn("⚠️ No emergency contacts found for userId={}", userId);
+                return;
+            }
+
+            // 🔹 Time
+            String timestamp = LocalDateTime.now()
+                    .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+
+            // 🔹 Google Maps link
+            String mapsLink = "UNKNOWN";
+
+            if (currentLocation != null && !currentLocation.equals("UNKNOWN")) {
+                mapsLink = "https://maps.google.com/?q=" + currentLocation;
+            }
+
+            // 🔹 Message
+            String message = String.format(
+                    "🚨 Emergency detected!\n" +
+                            "User might be in danger.\n\n" +
+                            "📍 Location:\n%s\n\n" +
+                            "🕒 Time: %s\n\n" +
+                            "Please check immediately.",
+                    mapsLink,
+                    timestamp
+            );
+
+            if (mapsLink.equals("UNKNOWN")) {
+                message += "\n⚠️ Location unavailable. Last known signal lost.";
+            }
+
+            String subject = "SOS Alert – Immediate Attention Required";
+
+            // 🔹 Send to all contacts + all channels
+            for (String contactNumber : contacts) {
+                List<NotificationRequest.Channel> channels = List.of(
+                        NotificationRequest.Channel.SMS,
+                        NotificationRequest.Channel.VOICE
                 );
 
-                kafkaTemplate.send(SOS_TOPIC, request);
-                log.info(" [Channel={}] SOS alert sent to Kafka for contact={} userId={}",
-                        channel, contactNumber, userId);
-            }
-        }
+                for (NotificationRequest.Channel channel : channels) {
 
-        log.info(" SOS dispatch completed successfully for userId={}", userId);
-        MDC.clear();
+                    NotificationRequest request = new NotificationRequest(
+                            UUID.fromString(userId),
+                            channel,
+                            subject,
+                            message,
+                            null,
+                            Map.of("to", contactNumber),
+                            sosTraceId
+                    );
+
+                    // ASYNC SEND (BEST PRACTICE)
+                    kafkaTemplate.send(SOS_TOPIC, request)
+                            .whenComplete((result, ex) -> {
+                                if (ex != null) {
+                                    log.error("Kafka send failed for userId={} contact={}", userId, contactNumber, ex);
+                                } else {
+                                    log.info("[Channel={}] SOS sent to contact={} userId={}",
+                                            channel, contactNumber, userId);
+                                }
+                            });
+                }
+            }
+
+            log.info("SOS dispatch completed for userId={}", userId);
+
+        } finally {
+            MDC.clear();
+        }
+    }
+
+    /**
+     * 🔥 DEAD LETTER QUEUE (DLT)
+     */
+    public void sendToDLT(String userId, String location) {
+
+        NotificationRequest request = new NotificationRequest(
+                UUID.fromString(userId),
+                NotificationRequest.Channel.SMS,
+                "DLT SOS",
+                "FAILED EVENT: " + location,
+                null,
+                Map.of(
+                        "userId", userId,
+                        "location", location,
+                        "source", "SOS_SERVICE"
+                ),
+                UUID.randomUUID().toString()
+        );
+
+        kafkaTemplate.send(SOS_TOPIC_DLT, request)
+                .whenComplete((result, ex) -> {
+                    if (ex != null) {
+                        log.error("Failed to send to DLT for userId={}", userId, ex);
+                    } else {
+                        log.info("Sent to DLT for userId={}", userId);
+                    }
+                });
     }
 }

@@ -32,6 +32,7 @@ dependencies {
 	implementation("com.tl.womensafety:womensafety-common:0.1.0")
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 	implementation("org.springframework.boot:spring-boot-starter-jdbc")
+	implementation ("org.springframework.boot:spring-boot-starter-validation")
 	implementation("com.mysql:mysql-connector-j")
 	implementation("org.flywaydb:flyway-core:10.17.0")
 	implementation("org.flywaydb:flyway-mysql:10.17.0")
