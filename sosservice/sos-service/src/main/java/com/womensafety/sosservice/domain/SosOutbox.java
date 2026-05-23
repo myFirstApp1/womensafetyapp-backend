@@ -25,14 +25,21 @@ public class SosOutbox {
     @Column(name = "location")
     private String location;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status")
-    private String status; // PENDING, SENT, FAILED
+    private OutboxStatus status;
 
     @Column(name = "retry_count")
     private int retryCount;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @Column(name = "event_id", unique = true)
+    private String eventId;
+
+    @Column(name = "failure_reason")
+    private String failureReason;
 
     @PrePersist
     public void prePersist() {

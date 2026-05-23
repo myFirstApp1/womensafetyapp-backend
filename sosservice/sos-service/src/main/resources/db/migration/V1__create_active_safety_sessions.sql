@@ -4,16 +4,17 @@ CREATE TABLE active_safety_sessions (
 
     device_id VARCHAR(100),
 
-    last_ping_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    last_ping_time TIMESTAMP NOT NULL
+    DEFAULT CURRENT_TIMESTAMP
+    ON UPDATE CURRENT_TIMESTAMP,
 
     battery_level INT,
 
     last_latitude DECIMAL(10,6),
+
     last_longitude DECIMAL(10,6),
 
-    -- =========================================
     -- DEVICE INTELLIGENCE
-    -- =========================================
 
     last_heart_rate INT,
 
@@ -23,9 +24,7 @@ CREATE TABLE active_safety_sessions (
 
     last_bluetooth_seen_at TIMESTAMP NULL,
 
-    -- =========================================
     -- STATE MACHINE
-    -- =========================================
 
     status VARCHAR(30) DEFAULT 'ACTIVE',
 
@@ -37,30 +36,22 @@ CREATE TABLE active_safety_sessions (
 
     auto_resume_at TIMESTAMP NULL,
 
-    -- =========================================
     -- TRACKING
-    -- =========================================
 
     tracking_id VARCHAR(100),
 
-    -- =========================================
     -- EMERGENCY FLAGS
-    -- =========================================
 
     emergency_triggered TINYINT(1) DEFAULT 0,
 
     emergency_contact_notified TINYINT(1) DEFAULT 0,
 
-    -- =========================================
+    version BIGINT DEFAULT 0,
+
     -- SESSION
-    -- =========================================
 
     session_start_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
--- =========================================
--- INDEXES
--- =========================================
 
 CREATE INDEX idx_heartbeat_check
 ON active_safety_sessions(status, last_ping_time);

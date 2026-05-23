@@ -94,6 +94,9 @@ public class ActiveSafetySession {
     @Column(name = "tracking_id")
     private String trackingId;
 
+    @Version
+    private Long version;
+
     // =========================
     // 🧠 DEFAULT HELPER METHODS
     // =========================
