@@ -8,15 +8,12 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
 public interface ActiveSafetySessionRepository extends JpaRepository<ActiveSafetySession, UUID> {
     
-   // @Modifying
-    //@Query("UPDATE ActiveSafetySession a SET a.isProtected = false WHERE a.lastPingTime < :threshold AND a.isProtected = true")
-    //int deactivateStaleHeartbeats(LocalDateTime threshold);
-
     List<ActiveSafetySession> findAllByStatus(SessionStatus status);
 
     // Get stale users (heartbeat missing)
@@ -25,4 +22,11 @@ public interface ActiveSafetySessionRepository extends JpaRepository<ActiveSafet
             LocalDateTime time
     );
     List<ActiveSafetySession> findByStatusIn(List<SessionStatus> statuses);
+    List<ActiveSafetySession> findByStatus(SessionStatus status);
+
+    Optional<ActiveSafetySession>
+    findByDeviceId(String deviceId);
+
+    Optional<ActiveSafetySession> findByTrackingId(String trackingId);
+
 }

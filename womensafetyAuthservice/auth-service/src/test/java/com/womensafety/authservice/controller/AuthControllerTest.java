@@ -34,7 +34,7 @@ class AuthControllerTest {
     void testRegisterUserDirectly() {
         // Given
         RegisterRequest request = new RegisterRequest("john", "john@example.com", "pass123");
-        AuthResponse expected = new AuthResponse("jwt-token", "User registered successfully", UUID.randomUUID(),"123458");
+        AuthResponse expected = new AuthResponse("jwt-token", "User registered successfully", UUID.randomUUID(),UUID.randomUUID());
 
         when(authService.register(request)).thenReturn(expected);
 

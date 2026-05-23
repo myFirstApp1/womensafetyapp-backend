@@ -3,10 +3,12 @@ package com.womensafety.sosservice.service;
 import com.womensafety.sosservice.domain.*;
 import com.womensafety.sosservice.repository.ActiveSafetySessionRepository;
 import com.womensafety.sosservice.repository.SosOutboxRepository;
+import com.womensafety.sosservice.statemachine.SessionStateMachineService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -21,10 +23,13 @@ public class HeartbeatCheckService {
 
     private final ActiveSafetySessionRepository activeSafetySessionRepository;
     private final SosOutboxRepository sosOutboxRepository;
-
-    // =========================================
-    // CONFIG
-    // =========================================
+    private final SessionStateMachineService stateMachineService;
+    private final RiskScoreCalculatorService riskScoreCalculatorService;
+    private final CommunicationFallbackService communicationFallbackService;
+    private final EmergencyCommunicationService emergencyCommunicationService;
+    private final OffBodyIntelligenceService offBodyIntelligenceService;
+    private final EmergencyTimelineService emergencyTimelineService;
+    private final SosTriggerService sosTriggerService;
 
     @Value("${safety.hr.max}")
     private int heartRateMax;
@@ -39,10 +44,6 @@ public class HeartbeatCheckService {
     private static final int WARNING_TIMEOUT_SECONDS = 60;
     private static final int BLUETOOTH_TIMEOUT_MINUTES = 2;
     private static final int PAUSE_ESCALATION_MINUTES = 10;
-
-    // =========================================
-    // MAIN SCHEDULER
-    // =========================================
 
     @Scheduled(fixedRate = 60000)
     @Transactional
@@ -88,7 +89,13 @@ public class HeartbeatCheckService {
                     log.info("AUTO_RESUME | userId={}",
                             session.getUserId());
 
-                    session.setStatus(SessionStatus.ACTIVE);
+                    stateMachineService.transitionState(
+                            session,
+                            SessionStatus.ACTIVE,
+                            "AUTO_RESUME",
+                            "SCHEDULER"
+                    );
+
                     session.setPauseType(null);
                     session.setAutoResumeAt(null);
 
@@ -138,10 +145,15 @@ public class HeartbeatCheckService {
                 if (session.getStatus() == SessionStatus.WARNING &&
                         session.getConfirmationStatus() == ConfirmationStatus.SAFE_CONFIRMED) {
 
-                    log.info("✅ USER_CONFIRMED_SAFE | userId={}",
+                    log.info(" USER_CONFIRMED_SAFE | userId={}",
                             session.getUserId());
 
-                    session.setStatus(SessionStatus.ACTIVE);
+                    stateMachineService.transitionState(
+                            session,
+                            SessionStatus.ACTIVE,
+                            "SAFE_CONFIRMED",
+                            "SCHEDULER"
+                    );
 
                     session.setConfirmationStatus(
                             ConfirmationStatus.NONE
@@ -171,7 +183,7 @@ public class HeartbeatCheckService {
                             ConfirmationStatus.NO_RESPONSE
                     );
 
-                    triggerSosViaOutbox(
+                    sosTriggerService.triggerSosViaOutbox(
                             session,
                             "NO_RESPONSE"
                     );
@@ -194,23 +206,33 @@ public class HeartbeatCheckService {
                     moveToWarning(session, now);
                 }
 
+            } catch (ObjectOptimisticLockingFailureException e) {
+
+                log.warn(
+                        "OPTIMISTIC_LOCK_CONFLICT | userId={}",
+                        session.getUserId()
+                );
+
             } catch (Exception e) {
 
-                log.error("HEARTBEAT_CHECK_ERROR | userId={}",
+                log.error(
+                        "HEARTBEAT_CHECK_ERROR | userId={}",
                         session.getUserId(),
-                        e);
+                        e
+                );
             }
         }
     }
 
-    // =========================================
-    // MOVE TO WARNING
-    // =========================================
-
     private void moveToWarning(ActiveSafetySession session,
                                LocalDateTime now) {
 
-        session.setStatus(SessionStatus.WARNING);
+        stateMachineService.transitionState(
+                session,
+                SessionStatus.WARNING,
+                "HEARTBEAT_TIMEOUT",
+                "SCHEDULER"
+        );
 
         session.setConfirmationStatus(
                 ConfirmationStatus.PENDING
@@ -224,10 +246,6 @@ public class HeartbeatCheckService {
                 session.getUserId());
     }
 
-    // =========================================
-    // START PROTECTION
-    // =========================================
-
     @Transactional
     public void startProtection(UUID userId) {
 
@@ -240,7 +258,12 @@ public class HeartbeatCheckService {
 
         session.setUserId(userId);
 
-        session.setStatus(SessionStatus.ACTIVE);
+        stateMachineService.transitionState(
+                session,
+                SessionStatus.ACTIVE,
+                "PROTECTION_STARTED",
+                "API"
+        );
 
         session.setPauseType(null);
 
@@ -260,15 +283,10 @@ public class HeartbeatCheckService {
 
         session.setLastPingTime(LocalDateTime.now());
 
-        // 🔥 IMPORTANT
         session.setLastBluetoothSeenAt(LocalDateTime.now());
 
         activeSafetySessionRepository.save(session);
     }
-
-    // =========================================
-    // HEARTBEAT PING
-    // =========================================
 
     @Transactional
     public void ping(UUID userId) {
@@ -278,20 +296,22 @@ public class HeartbeatCheckService {
 
                     session.setLastPingTime(LocalDateTime.now());
 
-                    // 🔥 Heartbeat implies bluetooth alive
                     session.setLastBluetoothSeenAt(
                             LocalDateTime.now()
                     );
 
-                    // RECOVERY
                     if (session.getStatus() == SessionStatus.WARNING ||
-                            session.getStatus() == SessionStatus.PAUSED_MANUAL ||
                             session.getStatus() == SessionStatus.PAUSED_OFF_BODY) {
 
                         log.info("RECOVERY -> ACTIVE | userId={}",
                                 userId);
 
-                        session.setStatus(SessionStatus.ACTIVE);
+                        stateMachineService.transitionState(
+                                session,
+                                SessionStatus.ACTIVE,
+                                "HEARTBEAT_RECOVERY",
+                                "HEARTBEAT_API"
+                        );
 
                         session.setPauseType(null);
 
@@ -304,15 +324,15 @@ public class HeartbeatCheckService {
                         session.setWarningTriggeredAt(null);
 
                         session.setIsDeviceWorn(true);
+
+                        session.setEmergencyTriggered(false);
+
+                        session.setEmergencyContactNotified(false);
                     }
 
                     activeSafetySessionRepository.save(session);
                 });
     }
-
-    // =========================================
-    // STOP PROTECTION
-    // =========================================
 
     @Transactional
     public void stopProtection(UUID userId) {
@@ -323,15 +343,16 @@ public class HeartbeatCheckService {
         activeSafetySessionRepository.findById(userId)
                 .ifPresent(session -> {
 
-                    session.setStatus(SessionStatus.ENDED);
+                    stateMachineService.transitionState(
+                            session,
+                            SessionStatus.ENDED,
+                            "USER_STOPPED",
+                            "API"
+                    );
 
                     activeSafetySessionRepository.save(session);
                 });
     }
-
-    // =========================================
-    // PAUSE PROTECTION
-    // =========================================
 
     @Transactional
     public void pauseProtection(UUID userId,
@@ -360,11 +381,15 @@ public class HeartbeatCheckService {
                             return activeSafetySessionRepository.save(newSession);
                         });
 
-        session.setStatus(SessionStatus.PAUSED_MANUAL);
+        stateMachineService.transitionState(
+                session,
+                SessionStatus.PAUSED_MANUAL,
+                "MANUAL_PAUSE",
+                "API"
+        );
 
         session.setPauseType(PauseType.MANUAL);
 
-        // manual pause ≠ device removed
         session.setIsDeviceWorn(true);
 
         session.setAutoResumeAt(
@@ -373,10 +398,6 @@ public class HeartbeatCheckService {
 
         activeSafetySessionRepository.save(session);
     }
-
-    // =========================================
-    // RESUME PROTECTION
-    // =========================================
 
     @Transactional
     public void resumeProtection(UUID userId) {
@@ -389,7 +410,12 @@ public class HeartbeatCheckService {
                         .orElseThrow(() ->
                                 new RuntimeException("Session not found"));
 
-        session.setStatus(SessionStatus.ACTIVE);
+        stateMachineService.transitionState(
+                session,
+                SessionStatus.ACTIVE,
+                "MANUAL_RESUME",
+                "API"
+        );
 
         session.setPauseType(null);
 
@@ -406,10 +432,6 @@ public class HeartbeatCheckService {
         activeSafetySessionRepository.save(session);
     }
 
-    // =========================================
-    // USER SAFE CONFIRMATION
-    // =========================================
-
     @Transactional
     public void confirmUserSafe(UUID userId) {
 
@@ -421,7 +443,12 @@ public class HeartbeatCheckService {
         log.info("USER_CONFIRMED_SAFE | userId={}",
                 userId);
 
-        session.setStatus(SessionStatus.ACTIVE);
+        stateMachineService.transitionState(
+                session,
+                SessionStatus.RECOVERY_PENDING,
+                "USER_CONFIRMED_SAFE",
+                "API"
+        );
 
         session.setConfirmationStatus(
                 ConfirmationStatus.SAFE_CONFIRMED
@@ -432,10 +459,6 @@ public class HeartbeatCheckService {
         activeSafetySessionRepository.save(session);
     }
 
-    // =========================================
-    // BLUETOOTH PING
-    // =========================================
-
     @Transactional
     public void updateBluetoothPing(UUID userId) {
 
@@ -443,18 +466,18 @@ public class HeartbeatCheckService {
                 activeSafetySessionRepository.findById(userId)
                         .orElseGet(() -> {
 
-                            log.warn("SESSION_NOT_FOUND -> Creating | userId={}",
+                            log.warn("SESSION_NOT_FOUND for bluetooth ping -> Creating | userId={}",
                                     userId);
 
                             ActiveSafetySession newSession =
                                     new ActiveSafetySession();
 
                             newSession.setUserId(userId);
-
                             newSession.setStatus(SessionStatus.ACTIVE);
-
                             newSession.setSessionStartTime(LocalDateTime.now());
-
+                            newSession.setEmergencyTriggered(false);
+                            newSession.setEmergencyContactNotified(false);
+                            newSession.setLastPingTime(LocalDateTime.now());
                             return activeSafetySessionRepository.save(newSession);
                         });
 
@@ -462,13 +485,17 @@ public class HeartbeatCheckService {
                 LocalDateTime.now()
         );
 
-        // BLUETOOTH RECOVERY
         if (session.getStatus() == SessionStatus.WARNING) {
 
             log.info("📡 BLUETOOTH_RECOVERY | userId={}",
                     userId);
 
-            session.setStatus(SessionStatus.ACTIVE);
+            stateMachineService.transitionState(
+                    session,
+                    SessionStatus.ACTIVE,
+                    "BLUETOOTH_RECOVERY",
+                    "DEVICE"
+            );
 
             session.setConfirmationStatus(
                     ConfirmationStatus.NONE
@@ -477,13 +504,17 @@ public class HeartbeatCheckService {
             session.setWarningTriggeredAt(null);
         }
 
-        // DEVICE WORN AGAIN
         if (session.getStatus() == SessionStatus.PAUSED_OFF_BODY) {
 
             log.info("⌚ DEVICE_WORN_AGAIN | userId={}",
                     userId);
 
-            session.setStatus(SessionStatus.ACTIVE);
+            stateMachineService.transitionState(
+                    session,
+                    SessionStatus.ACTIVE,
+                    "DEVICE_WORN_AGAIN",
+                    "DEVICE"
+            );
 
             session.setPauseType(null);
 
@@ -502,10 +533,6 @@ public class HeartbeatCheckService {
                 userId);
     }
 
-    // =========================================
-    // DEVICE VITALS
-    // =========================================
-
     @Transactional
     public void updateVitals(UUID userId,
                              int heartRate,
@@ -515,24 +542,36 @@ public class HeartbeatCheckService {
                 activeSafetySessionRepository.findById(userId)
                         .orElseGet(() -> {
 
-                            log.warn("SESSION_NOT_FOUND -> Creating | userId={}",
-                                    userId);
+                            log.warn(
+                                    "SESSION_NOT_FOUND For update vitals -> Creating | userId={}",
+                                    userId
+                            );
 
                             ActiveSafetySession newSession =
                                     new ActiveSafetySession();
 
                             newSession.setUserId(userId);
-
                             newSession.setStatus(SessionStatus.ACTIVE);
-
                             newSession.setSessionStartTime(LocalDateTime.now());
-
                             newSession.setEmergencyTriggered(false);
-
                             newSession.setEmergencyContactNotified(false);
+                            newSession.setLastPingTime(LocalDateTime.now());
 
-                            return activeSafetySessionRepository.save(newSession);
+                            // Communication defaults
+                            newSession.setCommunicationMode(
+                                    CommunicationMode.PHONE_BLUETOOTH
+                            );
+
+                            newSession.setCommunicationFailureCount(0);
+
+                            return activeSafetySessionRepository.save(
+                                    newSession
+                            );
                         });
+
+        // =====================================
+        // UPDATE VITALS
+        // =====================================
 
         session.setLastPingTime(LocalDateTime.now());
 
@@ -544,106 +583,127 @@ public class HeartbeatCheckService {
 
         session.setMovementScore(movementScore);
 
-        log.info("💓 VITALS | userId={} | HR={} | movement={}",
+        log.info(
+                "💓 VITALS | userId={} | HR={} | movement={}",
                 userId,
                 heartRate,
-                movementScore);
+                movementScore
+        );
 
-        // 🚨 EMERGENCY OVERRIDE
-        boolean abnormalHeartRate =
-                heartRate > heartRateMax ||
-                        heartRate < heartRateMin;
+        // =====================================
+        // BLUETOOTH STATUS
+        // =====================================
 
-        boolean violentMovement =
-                movementScore > dangerMovementThreshold;
+        boolean bluetoothConnected =
+                session.getLastBluetoothSeenAt() != null;
 
-        if (abnormalHeartRate && violentMovement) {
+        // =====================================
+        // OFF BODY ANALYSIS
+        // =====================================
 
-            forceEmergency(
-                    session,
-                    "HEART_RATE_AND_MOVEMENT"
+        OffBodyAnalysisResult offBodyResult =
+                offBodyIntelligenceService.analyze(session.getDeviceId(),
+                        Boolean.TRUE.equals(
+                                session.getIsDeviceWorn()
+                        ),
+                        heartRate,
+                        movementScore,
+                        bluetoothConnected
+                );
+
+        log.info(
+                "OFF_BODY_ANALYSIS | type={} | risk={} | dangerous={}",
+                offBodyResult.getEventType(),
+                offBodyResult.getRiskScore(),
+                offBodyResult.isDangerous()
+        );
+        // =====================================
+        // BASE RISK SCORE
+        // =====================================
+
+        int riskScore =
+                riskScoreCalculatorService.calculateRiskScore(
+                        heartRate,
+                        movementScore,
+                        bluetoothConnected,
+                        Boolean.TRUE.equals(
+                                session.getIsDeviceWorn()
+                        )
+                );
+        // =====================================
+        // ADD OFF BODY RISK
+        // =====================================
+        riskScore += offBodyResult.getRiskScore();
+        // Cap to 100
+        riskScore = Math.min(100, riskScore);
+        session.setRiskScore(riskScore);
+        log.warn(
+                "🚨 RISK_SCORE | userId={} | riskScore={}",
+                userId,
+                riskScore
+        );
+        // =====================================
+        // OFF BODY EMERGENCY
+        // =====================================
+
+        if (offBodyResult.isDangerous()) {
+            log.error(
+                    "OFF_BODY_DANGER_DETECTED | type={}",
+                    offBodyResult.getEventType()
             );
-
+            forceEmergency(session);
+            activeSafetySessionRepository.save(session);
             return;
         }
+        // =====================================
+        // RISK DECISION ENGINE
+        // =====================================
 
+        if (riskScore >= 70) {
+            forceEmergency(session);
+        } else if (riskScore >= 40) {
+            if (session.getStatus() == SessionStatus.ACTIVE) {
+                stateMachineService.transitionState(
+                        session,
+                        SessionStatus.SOFT_MONITORING,
+                        "MEDIUM_RISK_DETECTED",
+                        "RISK_ENGINE"
+                );
+            }
+        } else {
+            if (session.getStatus()
+                    == SessionStatus.SOFT_MONITORING) {
+                stateMachineService.transitionState(
+                        session,
+                        SessionStatus.ACTIVE,
+                        "RISK_NORMALIZED",
+                        "RISK_ENGINE"
+                );
+            }
+        }
         activeSafetySessionRepository.save(session);
     }
 
-    // =========================================
-    // FORCE EMERGENCY
-    // =========================================
-
-    private void forceEmergency(ActiveSafetySession session,
-                                String reason) {
+    private void forceEmergency(ActiveSafetySession session) {
 
         if (Boolean.TRUE.equals(session.getEmergencyTriggered())) {
             return;
         }
-
         log.error("🚨 FORCE_SOS | userId={} | reason={}",
                 session.getUserId(),
-                reason);
+                "HEART_RATE_AND_MOVEMENT");
+        CommunicationResult result =
+                emergencyCommunicationService
+                        .attemptCommunication(session);
 
-        triggerSosViaOutbox(session, reason);
+        if (result == CommunicationResult.FAILED) {
+
+            communicationFallbackService
+                    .escalateCommunication(session);
+        }
+        sosTriggerService.triggerSosViaOutbox(session, "HEART_RATE_AND_MOVEMENT");
     }
 
-    // =========================================
-    // OUTBOX SOS
-    // =========================================
-
-    private void triggerSosViaOutbox(ActiveSafetySession session,
-                                     String triggerReason) {
-
-        String location = "UNKNOWN";
-
-        if (session.getLastLatitude() != null &&
-                session.getLastLongitude() != null) {
-
-            location =
-                    session.getLastLatitude().toPlainString()
-                            + "," +
-                            session.getLastLongitude().toPlainString();
-        }
-
-        log.error("🚨 SOS_TRIGGERED | userId={} | reason={} | location={}",
-                session.getUserId(),
-                triggerReason,
-                location);
-
-        // Generate tracking only once
-        if (session.getTrackingId() == null) {
-
-            session.setTrackingId(
-                    UUID.randomUUID().toString()
-            );
-        }
-
-        SosOutbox event = new SosOutbox();
-
-        event.setUserId(session.getUserId());
-
-        event.setLocation(location);
-
-        event.setStatus("PENDING");
-
-        // optional future field
-        // event.setTriggerReason(triggerReason);
-
-        sosOutboxRepository.save(event);
-
-        session.setStatus(SessionStatus.IN_DANGER);
-
-        session.setEmergencyTriggered(true);
-
-        session.setEmergencyContactNotified(false);
-
-        activeSafetySessionRepository.save(session);
-    }
-
-    // =========================================
-    // OFF BODY
-    // =========================================
 
     @Transactional
     public void markDeviceOffBody(UUID userId) {
@@ -656,7 +716,12 @@ public class HeartbeatCheckService {
         log.warn("📴 DEVICE_OFF_BODY | userId={}",
                 userId);
 
-        session.setStatus(SessionStatus.PAUSED_OFF_BODY);
+        stateMachineService.transitionState(
+                session,
+                SessionStatus.PAUSED_OFF_BODY,
+                "DEVICE_REMOVED",
+                "DEVICE"
+        );
 
         session.setPauseType(PauseType.OFF_BODY);
 
@@ -664,6 +729,7 @@ public class HeartbeatCheckService {
 
         activeSafetySessionRepository.save(session);
     }
+
 
     // =========================================
     // HELPERS

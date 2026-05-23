@@ -29,7 +29,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/webjars/**",
-                                "/api/auth/**","/kafka/**","/api/secure/**","/api/auth/**/verify",
+                                "/api/auth/**",
+                                "/kafka/**",
+                                "/api/secure/**",
+                                "/api/auth/**/verify",
                                 "/actuator/**"
                         ).permitAll()
                         .anyRequest().authenticated())

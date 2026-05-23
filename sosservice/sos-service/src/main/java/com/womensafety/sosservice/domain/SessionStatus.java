@@ -6,5 +6,7 @@ public enum SessionStatus {
     PAUSED_OFF_BODY,
     WARNING,
     IN_DANGER,
-    ENDED
+    ENDED,
+    RECOVERY_PENDING,
+    SOFT_MONITORING
 }

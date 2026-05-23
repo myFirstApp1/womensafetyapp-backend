@@ -1,6 +1,6 @@
 package com.womensafety.sosservice.service;
 
-import com.womensafety.sosservice.domain.ConfirmationStatus;
+import com.womensafety.sosservice.domain.OutboxStatus;
 import com.womensafety.sosservice.domain.SosOutbox;
 import com.womensafety.sosservice.repository.SosOutboxRepository;
 import lombok.RequiredArgsConstructor;
@@ -9,7 +9,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 @Slf4j
 @Service
@@ -22,15 +21,26 @@ public class SosOutboxProcessorService {
 
 
     @Scheduled(fixedRate = 30000)
-    public void processOutbox() throws ExecutionException, InterruptedException {
-
+    public void processOutbox() {
         List<SosOutbox> events =
-                sosOutboxRepository.findTop100ByStatusOrderByCreatedAtAsc(ConfirmationStatus.PENDING.name());
+                sosOutboxRepository
+                        .findTop100ByStatusOrderByCreatedAtAsc(
+                                OutboxStatus.PENDING
+                        );
 
         for (SosOutbox event : events) {
-            sosRetryService.sendWithRetry(event);
+            try {
+
+                sosRetryService.sendWithRetry(event);
+
+            } catch (Exception e) {
+
+                log.error(
+                        "OUTBOX_PROCESSING_FAILED | eventId={}",
+                        event.getEventId(),
+                        e
+                );
+            }
         }
     }
-
-
 }

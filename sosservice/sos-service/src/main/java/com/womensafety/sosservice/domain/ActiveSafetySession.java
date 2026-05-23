@@ -94,6 +94,28 @@ public class ActiveSafetySession {
     @Column(name = "tracking_id")
     private String trackingId;
 
+    @Version
+    private Long version;
+
+    @Column(name = "risk_score")
+    private Integer riskScore;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "communication_mode")
+    private CommunicationMode communicationMode;
+
+    @Column(name = "communication_failure_count")
+    private Integer communicationFailureCount;
+
+    @Column(name = "last_communication_attempt")
+    private LocalDateTime lastCommunicationAttempt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "last_gps_status")
+    private GpsStatus lastGpsStatus;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "last_off_body_event")
+    private OffBodyEventType lastOffBodyEvent;
     // =========================
     // 🧠 DEFAULT HELPER METHODS
     // =========================
