@@ -1,12 +1,10 @@
 package com.womensafety.sosservice.controller;
 
-import com.womensafety.sosservice.kafka.NotificationProducer;
+import com.womensafety.sosservice.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.concurrent.ExecutionException;
 
 @Slf4j
 @RestController
@@ -14,34 +12,34 @@ import java.util.concurrent.ExecutionException;
 @RequiredArgsConstructor
 public class SosController {
 
-    private final NotificationProducer producerService;
+    private final NotificationService notificationService;
 
-
+    /**
+     * Consolidated endpoint to trigger SOS notifications.
+     * Optional `channel` can be used to indicate routing preference.
+     */
     @PostMapping("/trigger/{userId}")
-    public ResponseEntity<String> triggerSosGeneric(@PathVariable String userId,
-                                             @RequestParam(name = "location") String currentLocation) {
-        log.info(" Incoming SOS for user {} at {}", userId, currentLocation);
+    public ResponseEntity<String> triggerSos(
+            @PathVariable String userId,
+            @RequestParam(name = "location") String currentLocation,
+            @RequestParam(name = "channel", required = false) String channel,
+            @RequestParam(name = "async", required = false, defaultValue = "false") boolean async
+    ) {
+        log.info("Incoming SOS for user {} at {} via {}", userId, currentLocation, channel == null ? "default" : channel);
+
         try {
-            producerService.sendAutomaticSOS(userId,currentLocation);
-            return ResponseEntity.ok("SOS Triggered and sent to Kafka");
+            notificationService.sendAutomaticSos(userId, currentLocation, channel);
+
+            if (async) {
+                return ResponseEntity.accepted().build();
+            }
+
+            return ResponseEntity.ok("SOS Triggered and dispatched");
+
         } catch (Exception e) {
+            log.error("Failed to trigger SOS for user={}", userId, e);
             return ResponseEntity.internalServerError().body("Error processing request");
         }
-    }
-
-    @PostMapping("/trigger/whatsapp/{userId}")
-    public ResponseEntity<String> triggerWhatsAppSOS(@PathVariable String userId,
-                                             @RequestParam(name = "location") String currentLocation) throws ExecutionException, InterruptedException {
-        log.info("📲 WhatsApp SOS triggered for user {} at {}", userId, currentLocation);
-        producerService.sendAutomaticSOS(userId,currentLocation);
-        return ResponseEntity.ok(" SOS alert triggered for user " + userId);
-    }
-
-    @PostMapping("/notify/{userId}")
-    public ResponseEntity<Void> notifyUser(@PathVariable String userId,
-                                       @RequestParam(name = "location") String currentLocation) throws ExecutionException, InterruptedException {
-        producerService.sendAutomaticSOS(userId,currentLocation);
-        return ResponseEntity.accepted().build();
     }
 
 }

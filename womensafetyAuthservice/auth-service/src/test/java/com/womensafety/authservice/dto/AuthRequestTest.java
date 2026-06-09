@@ -9,18 +9,18 @@ class AuthRequestTest {
         AuthRequest authReq = new AuthRequest();
 
         // When
-        authReq.setUsername("john");
+        authReq.setEmail("john@gmail.com");
         authReq.setPassword("password123");
 
         // Then
-        assertEquals("john", authReq.getUsername());
+        assertEquals("john@gmail.com", authReq.getEmail());
         assertEquals("password123", authReq.getPassword());
     }
 
     @Test
     void testAllArgsConstructor() {
-        AuthRequest authReq = new AuthRequest("alice", "secret");
-        assertEquals("alice", authReq.getUsername());
+        AuthRequest authReq = new AuthRequest("alice@gmail.com", "secret");
+        assertEquals("alice@gmail.com", authReq.getEmail());
         assertEquals("secret", authReq.getPassword());
     }
 }

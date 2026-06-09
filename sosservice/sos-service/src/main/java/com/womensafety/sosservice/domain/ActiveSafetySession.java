@@ -1,5 +1,6 @@
 package com.womensafety.sosservice.domain;
 
+import com.womensafety.sosservice.domain.enums.*;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -116,6 +117,11 @@ public class ActiveSafetySession {
     @Enumerated(EnumType.STRING)
     @Column(name = "last_off_body_event")
     private OffBodyEventType lastOffBodyEvent;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "pre_alert_status")
+    private PreAlertStatus preAlertStatus;
+    @Column(name = "pre_alert_started_at")
+    private LocalDateTime preAlertStartedAt;
     // =========================
     // 🧠 DEFAULT HELPER METHODS
     // =========================

@@ -1,5 +1,6 @@
 package com.womensafety.sosservice.domain;
 
+import com.womensafety.sosservice.domain.enums.EvidenceType;
 import jakarta.persistence.*;
 import lombok.*;
 

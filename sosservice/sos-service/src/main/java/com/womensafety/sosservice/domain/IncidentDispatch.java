@@ -1,5 +1,6 @@
 package com.womensafety.sosservice.domain;
 
+import com.womensafety.sosservice.domain.enums.IncidentDeliveryStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -30,4 +31,10 @@ public class IncidentDispatch {
     private String responseMessage;
 
     private LocalDateTime dispatchedAt;
+    @Enumerated(EnumType.STRING)
+    private IncidentDeliveryStatus
+            deliveryStatus;
+    private LocalDateTime deliveredAt;
+
+    private LocalDateTime acknowledgedAt;
 }

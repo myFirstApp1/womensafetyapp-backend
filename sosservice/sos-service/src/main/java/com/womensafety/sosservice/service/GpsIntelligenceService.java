@@ -1,6 +1,7 @@
 package com.womensafety.sosservice.service;
 
 import com.womensafety.sosservice.domain.*;
+import com.womensafety.sosservice.domain.enums.GpsStatus;
 import com.womensafety.sosservice.repository.ActiveSafetySessionRepository;
 import com.womensafety.sosservice.repository.LocationHistoryRepository;
 import lombok.RequiredArgsConstructor;
@@ -13,7 +14,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class GpsIntelligenceService {
+public class GpsIntelligenceService implements IGpsIntelligenceService {
 
     private final LocationHistoryRepository
             locationHistoryRepository;
@@ -22,6 +23,7 @@ public class GpsIntelligenceService {
 
     private final ActiveSafetySessionRepository
             activeSafetySessionRepository;
+        private final SessionManager sessionManager;
 
     public GpsAnalysisResult analyze(
             String deviceId
@@ -87,9 +89,7 @@ public class GpsIntelligenceService {
                                 GpsStatus.STATIONARY_LONG_TIME
                         );
 
-                        activeSafetySessionRepository.save(
-                                session
-                        );
+                        sessionManager.save(session);
                     }
                 }
                 return new GpsAnalysisResult(
@@ -120,9 +120,7 @@ public class GpsIntelligenceService {
                             GpsStatus.STATIONARY
                     );
 
-                    activeSafetySessionRepository.save(
-                            session
-                    );
+                    sessionManager.save(session);
                 }
             }
 
@@ -142,9 +140,7 @@ public class GpsIntelligenceService {
                     GpsStatus.MOVING
             );
 
-            activeSafetySessionRepository.save(
-                    session
-            );
+            sessionManager.save(session);
         }
         return new GpsAnalysisResult(
                 GpsStatus.MOVING,

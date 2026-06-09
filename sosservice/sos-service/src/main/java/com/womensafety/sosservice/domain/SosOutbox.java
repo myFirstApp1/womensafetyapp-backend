@@ -1,5 +1,6 @@
 package com.womensafety.sosservice.domain;
 
+import com.womensafety.sosservice.domain.enums.OutboxStatus;
 import jakarta.persistence.*;
 import lombok.*;
 

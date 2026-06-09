@@ -1,7 +1,9 @@
 package com.womensafety.sosservice.controller;
 
 import com.womensafety.sosservice.domain.*;
-import com.womensafety.sosservice.dto.EvidenceRequest;
+import com.womensafety.sosservice.domain.enums.GpsStatus;
+import com.womensafety.sosservice.domain.enums.HeartbeatLossType;
+import com.womensafety.sosservice.domain.enums.TamperEventType;
 import com.womensafety.sosservice.repository.ActiveSafetySessionRepository;
 import com.womensafety.sosservice.repository.EmergencyTimelineRepository;
 import com.womensafety.sosservice.service.*;
@@ -17,6 +19,7 @@ import java.util.UUID;
 public class TestController {
 
     private final ActiveSafetySessionRepository activeSafetySessionRepository;
+        private final SessionManager sessionManager;
     private final CommunicationFallbackService communicationFallbackService;
     private final GpsIntelligenceService gpsIntelligenceService;
     private final RiskDecisionEngine riskDecisionEngine;
@@ -33,7 +36,7 @@ public class TestController {
                         .orElseThrow();
         communicationFallbackService
                 .escalateCommunication(session);
-        activeSafetySessionRepository.save(session);
+        sessionManager.save(session);
         return "Fallback Triggered";
     }
 

@@ -1,6 +1,6 @@
 package com.womensafety.sosservice.repository;
 
-import com.womensafety.sosservice.domain.OutboxStatus;
+import com.womensafety.sosservice.domain.enums.OutboxStatus;
 import com.womensafety.sosservice.domain.SosOutbox;
 import org.springframework.data.jpa.repository.JpaRepository;
 

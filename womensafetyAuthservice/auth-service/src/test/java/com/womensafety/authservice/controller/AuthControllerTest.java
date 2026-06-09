@@ -51,7 +51,7 @@ class AuthControllerTest {
     @Test
     void testLoginUserSuccess() {
         // Given
-        AuthRequest request = new AuthRequest("john","pass123");
+        AuthRequest request = new AuthRequest("john@gmail.com","pass123");
         AuthResponse expected = new AuthResponse("jwt-login-token", "Login successfully",UUID.randomUUID(),null);
 
         when(authService.login(any(AuthRequest.class))).thenReturn(expected);

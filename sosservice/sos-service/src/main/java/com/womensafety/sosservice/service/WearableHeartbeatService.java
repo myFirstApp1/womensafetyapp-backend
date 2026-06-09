@@ -1,8 +1,7 @@
 package com.womensafety.sosservice.service;
 
-import com.womensafety.sosservice.domain.ActiveSafetySession;
-import com.womensafety.sosservice.domain.LocationHistory;
-import com.womensafety.sosservice.domain.RegisteredDevice;
+import com.womensafety.sosservice.domain.*;
+import com.womensafety.sosservice.domain.enums.PreAlertStatus;
 import com.womensafety.sosservice.dto.HeartbeatPacket;
 import com.womensafety.sosservice.repository.ActiveSafetySessionRepository;
 import com.womensafety.sosservice.repository.LocationHistoryRepository;
@@ -21,7 +20,16 @@ public class WearableHeartbeatService {
     private final RegisteredDeviceRepository repository;
     private final ActiveSafetySessionRepository activeSafetySessionRepository;
     private final LocationHistoryRepository locationHistoryRepository;
+    private final AiSensorRulesService aiSensorRulesService;
+    private final IncidentResponseService incidentResponseService;
+    private final SensorFusionOrchestratorService
+            sensorFusionOrchestratorService;
+    private final OffBodyIntelligenceService
+            offBodyIntelligenceService;
 
+    private final GpsIntelligenceService
+            gpsIntelligenceService;
+    private final SessionManager sessionManager;
     public void processHeartbeat(
             HeartbeatPacket packet
     ) {
@@ -80,10 +88,68 @@ public class WearableHeartbeatService {
             session.setLastPingTime(
                     LocalDateTime.now()
             );
-            activeSafetySessionRepository.save(
+            sessionManager.save(
                     session
             );
+            boolean preAlertActive =
+                    session.getPreAlertStatus() ==
+                            PreAlertStatus.ACTIVE;
 
+            RuleEvaluationResult ruleResult =
+                    aiSensorRulesService.evaluate(
+                            packet.getHeartRate(),
+                            packet.getMovementScore(),
+                            packet.getDeviceWorn(),
+                            packet.getBluetoothConnected(),
+                            preAlertActive
+                    );
+            OffBodyAnalysisResult offBodyResult =
+                    offBodyIntelligenceService.analyze(
+                            packet.getDeviceId(),
+                            packet.getDeviceWorn(),
+                            packet.getHeartRate(),
+                            packet.getMovementScore(),
+                            packet.getBluetoothConnected()
+                    );
+
+            GpsAnalysisResult gpsResult =
+                    gpsIntelligenceService.analyze(
+                            packet.getDeviceId()
+                    );
+            SensorContext context =
+                    SensorContext.builder()
+                            .preAlertActive(
+                                    preAlertActive
+                            )
+                            .offBodyResult(
+                                    offBodyResult
+                            )
+                            .gpsResult(
+                                    gpsResult
+                            )
+                            .build();
+
+            if (Boolean.TRUE.equals(
+                    ruleResult.getTriggerSos()
+            )) {
+
+                log.error(
+                        "AI_RULE_TRIGGERED | type={} | risk={}",
+                        ruleResult.getRuleType(),
+                        ruleResult.getRiskScore()
+                );
+
+                incidentResponseService.processIncident(
+                        session,
+                        ruleResult.getRuleType().name(),
+                        ruleResult.getRiskScore(),
+                        true
+                );
+            }
+            sensorFusionOrchestratorService.processFusion(
+                    session,
+                    context
+            );
             LocationHistory history =
                     LocationHistory.builder()
                             .deviceId(

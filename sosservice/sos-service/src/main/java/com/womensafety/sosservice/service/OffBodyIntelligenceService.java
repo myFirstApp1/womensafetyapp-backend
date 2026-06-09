@@ -2,7 +2,7 @@ package com.womensafety.sosservice.service;
 
 import com.womensafety.sosservice.domain.ActiveSafetySession;
 import com.womensafety.sosservice.domain.OffBodyAnalysisResult;
-import com.womensafety.sosservice.domain.OffBodyEventType;
+import com.womensafety.sosservice.domain.enums.OffBodyEventType;
 import com.womensafety.sosservice.repository.ActiveSafetySessionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +17,7 @@ public class OffBodyIntelligenceService {
 
     private final ActiveSafetySessionRepository
             activeSafetySessionRepository;
+        private final SessionManager sessionManager;
     public OffBodyAnalysisResult analyze(
             String deviceId,
             boolean deviceWorn,
@@ -39,9 +40,7 @@ public class OffBodyIntelligenceService {
 
                 session.setLastOffBodyEvent(null);
 
-                activeSafetySessionRepository.save(
-                        session
-                );
+                sessionManager.save(session);
             }
 
             return new OffBodyAnalysisResult(
@@ -193,7 +192,7 @@ public class OffBodyIntelligenceService {
                     session.setLastOffBodyEvent(
                             OffBodyEventType.SLOW_REMOVAL
                     );
-                    activeSafetySessionRepository.save(
+                    sessionManager.save(
                             session
                     );
 

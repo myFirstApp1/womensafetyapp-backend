@@ -97,20 +97,20 @@ public class AuthService {
     }
 
     public AuthResponse login(AuthRequest request) {
-        log.info("Login attempt for user: {}", request.getUsername());
-        User user = userRepository.findByUsername(request.getUsername())
+        log.info("Login attempt for email: {}", request.getEmail());
+        User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() ->{
-                    log.warn("Login failed: user '{}' not found", request.getUsername());
-                    return new UsernameNotFoundException("User not found");
+                    log.warn("Login failed: email '{}' not found", request.getEmail());
+                    return new UsernameNotFoundException("Email not found");
                 });
         if (!user.getIsVerified()) {
             throw new InvalidCredentialsException("Please verify OTP before login");
         }
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            log.warn("Login failed: invalid credentials for user '{}'", request.getUsername());
-            throw new InvalidCredentialsException("Invalid username or password");
+            log.warn("Login failed: invalid credentials for email '{}'", request.getEmail());
+            throw new InvalidCredentialsException("Invalid email  or password");
         }
-        log.info("Login successful for user: {}", request.getUsername());
+        log.info("Login successful for email: {}", request.getEmail());
         String token = jwtUtil.generateToken(user.getUsername());
         return new AuthResponse(token, "Login successful", user.getId(),null);
     }

@@ -1,5 +1,6 @@
 package com.womensafety.sosservice.domain;
 
+import com.womensafety.sosservice.domain.enums.GpsStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 

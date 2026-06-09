@@ -55,6 +55,8 @@ CREATE TABLE active_safety_sessions (
     last_communication_attempt TIMESTAMP NULL,
     last_gps_status VARCHAR(50),
     last_off_body_event VARCHAR(50),
+    pre_alert_status VARCHAR(30),
+    pre_alert_started_at TIMESTAMP NULL,
 
     -- SESSION
 

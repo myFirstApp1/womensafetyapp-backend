@@ -71,8 +71,9 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<ResponseWrapper<AuthResponse>> loginUser(@Validated(OnCreateGroupValidator.class) @RequestBody AuthRequest request) {
-        log.info("POST /api/auth/login called for user: {}", request.getUsername());
+    public ResponseEntity<ResponseWrapper<AuthResponse>> loginUser(@Validated(OnCreateGroupValidator.class)
+                                                                       @RequestBody AuthRequest request) {
+        log.info("POST /api/auth/login called for user: {}", request.getEmail());
         return ResponseEntity.ok(ResponseWrapper.success("Login successful", authService.login(request)));
     }
 

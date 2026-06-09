@@ -1,7 +1,7 @@
 package com.womensafety.sosservice.statemachine;
 
 import com.womensafety.sosservice.domain.ActiveSafetySession;
-import com.womensafety.sosservice.domain.SessionStatus;
+import com.womensafety.sosservice.domain.enums.SessionStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

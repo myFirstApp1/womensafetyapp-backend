@@ -1,10 +1,8 @@
 package com.womensafety.sosservice.repository;
 
 import com.womensafety.sosservice.domain.ActiveSafetySession;
-import com.womensafety.sosservice.domain.SessionStatus;
+import com.womensafety.sosservice.domain.enums.SessionStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.List;

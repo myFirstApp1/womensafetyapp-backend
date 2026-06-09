@@ -11,6 +11,8 @@ CREATE TABLE incident_dispatch (
     response_code VARCHAR(100),
 
     response_message VARCHAR(2000),
-
+    delivery_status VARCHAR(30),
+    delivered_at TIMESTAMP NULL,
+    acknowledged_at TIMESTAMP NULL,
     dispatched_at DATETIME
 );

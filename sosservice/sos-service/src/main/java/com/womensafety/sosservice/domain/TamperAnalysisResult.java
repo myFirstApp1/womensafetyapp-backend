@@ -1,5 +1,6 @@
 package com.womensafety.sosservice.domain;
 
+import com.womensafety.sosservice.domain.enums.TamperEventType;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
