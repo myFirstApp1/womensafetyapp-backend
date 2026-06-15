@@ -1,7 +1,8 @@
 package com.womensafety.sosservice.controller;
 
-import com.womensafety.sosservice.service.AcknowledgementService;
-import com.womensafety.sosservice.service.DeliveryConfirmationService;
+
+import com.womensafety.sosservice.service.acknowledgement.AcknowledgementService;
+import com.womensafety.sosservice.service.acknowledgement.DeliveryConfirmationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;

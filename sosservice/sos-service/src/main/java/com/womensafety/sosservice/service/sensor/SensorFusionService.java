@@ -1,4 +1,4 @@
-package com.womensafety.sosservice.service;
+package com.womensafety.sosservice.service.sensor;
 
 import com.womensafety.sosservice.domain.*;
 import com.womensafety.sosservice.domain.enums.DangerLevel;

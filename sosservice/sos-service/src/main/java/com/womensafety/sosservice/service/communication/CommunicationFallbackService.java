@@ -1,4 +1,4 @@
-package com.womensafety.sosservice.service;
+package com.womensafety.sosservice.service.communication;
 
 import com.womensafety.sosservice.domain.ActiveSafetySession;
 import com.womensafety.sosservice.domain.enums.CommunicationMode;

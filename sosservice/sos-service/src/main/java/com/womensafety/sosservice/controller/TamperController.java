@@ -2,7 +2,7 @@ package com.womensafety.sosservice.controller;
 
 import com.womensafety.sosservice.domain.TamperAnalysisResult;
 import com.womensafety.sosservice.dto.TamperDetectionRequest;
-import com.womensafety.sosservice.service.TamperDetectionService;
+import com.womensafety.sosservice.service.risk.TamperDetectionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;

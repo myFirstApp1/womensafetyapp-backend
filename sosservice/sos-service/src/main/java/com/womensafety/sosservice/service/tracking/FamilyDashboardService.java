@@ -50,19 +50,19 @@ public class FamilyDashboardService {
                 .latitude(
                         session.getLastLatitude() == null
                                 ? null
-                                : session.getLastLatitude().doubleValue()
+                                : session.getLastLatitude()
                 )
                 .longitude(
                         session.getLastLongitude() == null
                                 ? null
-                                : session.getLastLongitude().doubleValue()
+                                : session.getLastLongitude()
                 )
                 .evidenceCount(
                         evidenceCount
                 )
-                .lastUpdateTime(
+                /*.lastUpdateTime(
                         session.getLastPingTime()
-                )
+                )*/
                 .build();
     }
 }

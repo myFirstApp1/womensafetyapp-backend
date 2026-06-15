@@ -42,7 +42,7 @@ public class UserCreatedConsumer {
                                     .userId(event.userId())
                                     .name(event.userName()) // optional: pre-fill username as name
                                     .email(event.email())
-                                    .isVerified(event.isVerified()) // can store if you added this field
+                                    //.isVerified(event.isVerified()) // can store if you added this field
                                     .build();
                             userProfileRepository.save(profile);
                             log.info("Created new profile for userId {}, email {}", event.userId(),profile.getEmail());

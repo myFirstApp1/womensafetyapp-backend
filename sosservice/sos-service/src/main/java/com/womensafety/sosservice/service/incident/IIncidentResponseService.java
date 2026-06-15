@@ -1,4 +1,4 @@
-package com.womensafety.sosservice.service;
+package com.womensafety.sosservice.service.incident;
 
 import com.womensafety.sosservice.domain.ActiveSafetySession;
 

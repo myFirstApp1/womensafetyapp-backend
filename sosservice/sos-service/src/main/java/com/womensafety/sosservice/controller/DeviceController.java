@@ -2,8 +2,9 @@ package com.womensafety.sosservice.controller;
 
 import com.womensafety.sosservice.dto.HeartbeatPacket;
 import com.womensafety.sosservice.dto.VitalsUpdateRequest;
-import com.womensafety.sosservice.service.HeartbeatCheckService;
+
 import com.womensafety.sosservice.service.WearableHeartbeatService;
+import com.womensafety.sosservice.service.heartbeat.HeartbeatCheckService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

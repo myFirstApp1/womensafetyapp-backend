@@ -1,7 +1,7 @@
 package com.womensafety.sosservice.controller;
 
 import com.womensafety.sosservice.dto.TimelineEventResponse;
-import com.womensafety.sosservice.service.FamilyTimelineService;
+import com.womensafety.sosservice.service.tracking.FamilyTimelineService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 

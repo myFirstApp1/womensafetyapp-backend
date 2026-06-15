@@ -1,4 +1,4 @@
-package com.womensafety.sosservice.service;
+package com.womensafety.sosservice.service.heartbeat;
 
 import java.util.List;
 import java.util.UUID;

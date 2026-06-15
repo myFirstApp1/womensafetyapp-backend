@@ -2,7 +2,8 @@ package com.womensafety.sosservice.controller;
 
 import com.womensafety.sosservice.domain.TrackingSession;
 import com.womensafety.sosservice.dto.TrackingUpdateRequest;
-import com.womensafety.sosservice.service.TrackingService;
+
+import com.womensafety.sosservice.service.tracking.TrackingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

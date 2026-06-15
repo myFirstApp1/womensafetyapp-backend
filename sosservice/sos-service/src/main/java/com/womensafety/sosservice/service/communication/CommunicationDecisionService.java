@@ -1,4 +1,4 @@
-package com.womensafety.sosservice.service;
+package com.womensafety.sosservice.service.communication;
 
 import com.womensafety.sosservice.communication.LoRaGateway;
 import com.womensafety.sosservice.communication.PhoneBluetoothGateway;
@@ -8,6 +8,8 @@ import com.womensafety.sosservice.domain.ActiveSafetySession;
 import com.womensafety.sosservice.domain.enums.CommunicationMode;
 import com.womensafety.sosservice.domain.CommunicationResults;
 import com.womensafety.sosservice.repository.ActiveSafetySessionRepository;
+import com.womensafety.sosservice.service.core.SessionManager;
+import com.womensafety.sosservice.service.timeline.EmergencyTimelineService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

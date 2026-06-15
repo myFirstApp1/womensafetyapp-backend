@@ -1,4 +1,4 @@
-package com.womensafety.sosservice.service;
+package com.womensafety.sosservice.service.location;
 
 import com.womensafety.sosservice.domain.ActiveSafetySession;
 import com.womensafety.sosservice.domain.LocationRecoveryEvent;

@@ -2,7 +2,8 @@ package com.womensafety.sosservice.scheduler;
 
 import com.womensafety.sosservice.domain.RegisteredDevice;
 import com.womensafety.sosservice.repository.RegisteredDeviceRepository;
-import com.womensafety.sosservice.service.HeartbeatLossService;
+
+import com.womensafety.sosservice.service.heartbeat.HeartbeatLossService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;

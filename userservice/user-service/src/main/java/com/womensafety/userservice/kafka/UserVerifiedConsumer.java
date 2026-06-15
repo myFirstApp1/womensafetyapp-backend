@@ -33,7 +33,7 @@ public class UserVerifiedConsumer {
 
         userProfileRepository.findByUserId(event.getUserId())
                 .ifPresent(profile -> {
-                    profile.setVerified(true);
+                   // profile.setVerified(true);
                     userProfileRepository.save(profile);
                     log.info("User profile verified for userId {}", event.getUserId());
                 });

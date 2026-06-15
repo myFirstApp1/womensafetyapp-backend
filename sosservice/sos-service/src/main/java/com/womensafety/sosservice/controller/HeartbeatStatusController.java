@@ -1,7 +1,7 @@
 package com.womensafety.sosservice.controller;
 
 import com.womensafety.sosservice.domain.ActiveSafetySession;
-import com.womensafety.sosservice.service.HeartbeatCheckService;
+import com.womensafety.sosservice.service.heartbeat.HeartbeatCheckService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;

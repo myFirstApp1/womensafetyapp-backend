@@ -27,8 +27,6 @@ public class UserProfile {
     private String email;
     private String phone;
     private String address;
-    @Column(name = "is_verified", columnDefinition = "bit(1) default 0")
-    private boolean isVerified;
     @Column(name = "profile_picture_url", length = 2048)
     private String profilePictureUrl;
     @Column(name = "profile_picture_path", length = 512)

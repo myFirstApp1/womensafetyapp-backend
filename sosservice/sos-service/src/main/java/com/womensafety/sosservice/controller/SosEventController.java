@@ -1,6 +1,6 @@
 package com.womensafety.sosservice.controller;
 
-import com.womensafety.sosservice.service.SosEventService;
+import com.womensafety.sosservice.service.sos.SosEventService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;

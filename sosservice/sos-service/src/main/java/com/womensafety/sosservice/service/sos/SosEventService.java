@@ -88,6 +88,7 @@ public class SosEventService {
                     BigDecimal.valueOf(lng)
             );
         }
+        sessionManager.ensureTrackingId(session);
 
         sessionManager.save(session);
         sosTriggerService.triggerSosViaOutbox(

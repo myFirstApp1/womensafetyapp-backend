@@ -47,4 +47,25 @@ public class TrackingService {
                 request.speed()
         );
     }
+    // =========================================
+    // GET LATEST LOCATION
+    // =========================================
+
+    public TrackingSession getLatestLocation(String trackingId) {
+
+        return trackingSessionRepository
+                .findTopByTrackingIdOrderByRecordedAtDesc(trackingId)
+                .orElseThrow(() ->
+                        new RuntimeException("Tracking session not found"));
+    }
+
+    // =========================================
+    // GET TRACKING HISTORY
+    // =========================================
+
+    public List<TrackingSession> getTrackingHistory(String trackingId) {
+
+        return trackingSessionRepository
+                .findTop100ByTrackingIdOrderByRecordedAtDesc(trackingId);
+    }
 }

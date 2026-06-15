@@ -1,9 +1,10 @@
-package com.womensafety.sosservice.service;
+package com.womensafety.sosservice.service.heartbeat;
 
 import com.womensafety.sosservice.domain.ActiveSafetySession;
 import com.womensafety.sosservice.domain.HeartbeatLossResult;
 import com.womensafety.sosservice.domain.enums.HeartbeatLossType;
 import com.womensafety.sosservice.repository.ActiveSafetySessionRepository;
+import com.womensafety.sosservice.service.incident.IncidentResponseService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

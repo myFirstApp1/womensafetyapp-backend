@@ -4,8 +4,9 @@ import com.womensafety.sosservice.domain.*;
 import com.womensafety.sosservice.domain.enums.GpsStatus;
 import com.womensafety.sosservice.repository.ActiveSafetySessionRepository;
 import com.womensafety.sosservice.repository.LocationHistoryRepository;
-import com.womensafety.sosservice.service.incident.IncidentResponseService;
+
 import com.womensafety.sosservice.service.core.SessionManager;
+import com.womensafety.sosservice.service.incident.IncidentResponseService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

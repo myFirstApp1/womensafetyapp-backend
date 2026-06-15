@@ -27,7 +27,7 @@ public class SosRetryService {
             backoff = @Backoff(delay = 2000)
     )
     public void sendWithRetry(SosOutbox event)
-            throws ExecutionException, InterruptedException {
+            throws Exception {
         event.setRetryCount(event.getRetryCount() + 1);
         sosOutboxRepository.save(event);
         notificationService.sendAutomaticSos(

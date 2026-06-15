@@ -1,6 +1,7 @@
 package com.womensafety.sosservice.controller;
 
-import com.womensafety.sosservice.service.NotificationService;
+
+import com.womensafety.sosservice.service.communication.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;

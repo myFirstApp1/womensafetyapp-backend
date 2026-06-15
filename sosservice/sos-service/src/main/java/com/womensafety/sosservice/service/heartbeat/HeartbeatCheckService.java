@@ -1,9 +1,17 @@
-package com.womensafety.sosservice.service;
+package com.womensafety.sosservice.service.heartbeat;
 
 import com.womensafety.sosservice.domain.*;
 import com.womensafety.sosservice.domain.enums.*;
 import com.womensafety.sosservice.repository.ActiveSafetySessionRepository;
 import com.womensafety.sosservice.repository.SosOutboxRepository;
+
+import com.womensafety.sosservice.service.OffBodyIntelligenceService;
+import com.womensafety.sosservice.service.communication.CommunicationFallbackService;
+import com.womensafety.sosservice.service.communication.EmergencyCommunicationService;
+import com.womensafety.sosservice.service.core.SessionManager;
+import com.womensafety.sosservice.service.risk.RiskScoreCalculatorService;
+import com.womensafety.sosservice.service.sos.SosTriggerService;
+import com.womensafety.sosservice.service.timeline.EmergencyTimelineService;
 import com.womensafety.sosservice.statemachine.SessionStateMachineService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -260,6 +268,19 @@ public class HeartbeatCheckService implements IHeartbeatCheckService {
 
         session.setUserId(userId);
 
+        // ===== ADD THIS =====
+
+        if (session.getStatus() == SessionStatus.ACTIVE) {
+
+            log.info(
+                    "PROTECTION_ALREADY_ACTIVE | userId={}",
+                    userId
+            );
+
+            return;
+        }
+
+        // ====================
         stateMachineService.transitionState(
                 session,
                 SessionStatus.ACTIVE,

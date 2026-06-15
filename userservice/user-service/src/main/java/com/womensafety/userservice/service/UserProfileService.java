@@ -10,7 +10,13 @@ import com.womensafety.userservice.repository.UserProfileRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 
 @Service
@@ -30,7 +36,7 @@ public class UserProfileService {
                 .phone(profile.getPhone())
                 .address(profile.getAddress())
                 .profilePictureUrl(profile.getProfilePictureUrl())
-                .isVerified(profile.isVerified())
+               // .isVerified(profile.isVerified())
                 .emergencyContacts(
                         profile.getEmergencyContacts().stream()
                                 .map(c -> EmergencyContactResponse.builder()
@@ -54,7 +60,7 @@ public class UserProfileService {
         profile.setAddress(updated.getAddress());
         profile.setProfilePictureUrl(updated.getProfilePictureUrl());
         profile.setProfilePicturePath(updated.getProfilePicturePath());
-        profile.setVerified(updated.isVerified());
+        //profile.setVerified(updated.isVerified());
 
         if (updated.getEmergencyContacts() != null && !updated.getEmergencyContacts().isEmpty()) {
             // business rules: 1 ≤ contacts ≤ 15
@@ -70,5 +76,57 @@ public class UserProfileService {
         }
 
             return userProfileRepository.save(profile);
+    }
+    public String uploadProfilePicture(
+            UUID userId,
+            MultipartFile file
+    ) throws IOException {
+
+        UserProfile profile =
+                userProfileRepository.findByUserId(userId)
+                        .orElseThrow(
+                                () -> new RuntimeException(
+                                        "Profile not found"
+                                )
+                        );
+
+        String fileName =
+                UUID.randomUUID()
+                        + "_"
+                        + file.getOriginalFilename();
+
+        Path uploadDir =
+                Paths.get(
+                        "uploads/profile"
+                );
+
+        Files.createDirectories(
+                uploadDir
+        );
+
+        Path target =
+                uploadDir.resolve(
+                        fileName
+                );
+
+        Files.copy(
+                file.getInputStream(),
+                target,
+                StandardCopyOption.REPLACE_EXISTING
+        );
+
+        profile.setProfilePicturePath(
+                target.toString()
+        );
+
+        profile.setProfilePictureUrl(
+                "/uploads/profile/" + fileName
+        );
+
+        userProfileRepository.save(
+                profile
+        );
+
+        return profile.getProfilePictureUrl();
     }
 }

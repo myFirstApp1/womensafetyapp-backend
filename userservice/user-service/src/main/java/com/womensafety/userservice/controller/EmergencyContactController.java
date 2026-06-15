@@ -38,10 +38,10 @@ public class EmergencyContactController {
 
     @PutMapping("/{contactId}")
     public ResponseEntity<EmergencyContactDto> updateContact(
-            //@PathVariable Long userId,
+            @PathVariable UUID userId,
             @PathVariable Long contactId,
             @RequestBody EmergencyContactRequestDto req) {
-        return ResponseEntity.ok(contactService.updateContact(contactId, req));
+        return ResponseEntity.ok(contactService.updateContact(userId,contactId, req));
     }
 
     @DeleteMapping("/{userId}/{contactId}")

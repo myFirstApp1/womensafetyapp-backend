@@ -7,7 +7,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.UUID;
 
 @RestController
@@ -30,5 +32,22 @@ public class UserProfileController {
             @PathVariable UUID userId,
             @RequestBody UserProfile updatedProfile) {
         return ResponseEntity.ok(userProfileService.updateProfile(userId, updatedProfile));
+    }
+
+    @PostMapping(
+            value = "/profile-picture",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public ResponseEntity<String> uploadProfilePicture(
+            @RequestParam UUID userId,
+            @RequestPart MultipartFile file
+    ) throws IOException {
+
+        return ResponseEntity.ok(
+                userProfileService.uploadProfilePicture(
+                        userId,
+                        file
+                )
+        );
     }
 }

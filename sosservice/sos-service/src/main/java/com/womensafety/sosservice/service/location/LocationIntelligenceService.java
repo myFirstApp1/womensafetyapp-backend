@@ -1,4 +1,4 @@
-package com.womensafety.sosservice.service;
+package com.womensafety.sosservice.service.location;
 
 import com.womensafety.sosservice.domain.LocationAnalysisResult;
 import com.womensafety.sosservice.domain.enums.LocationEventType;

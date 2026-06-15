@@ -19,7 +19,6 @@ public class UserProfileResponse {
     private String phone;
     private String address;
     private String profilePictureUrl;
-    private Boolean isVerified;
     private List<EmergencyContactResponse> emergencyContacts;
 
 }
