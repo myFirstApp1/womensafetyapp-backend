@@ -7,7 +7,6 @@ import com.womensafety.authservice.exception.InvalidCredentialsException;
 import com.womensafety.authservice.service.AuthService;
 import jakarta.annotation.PostConstruct;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;

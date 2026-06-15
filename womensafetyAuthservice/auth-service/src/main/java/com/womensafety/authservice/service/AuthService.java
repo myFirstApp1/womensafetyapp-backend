@@ -1,6 +1,5 @@
 package com.womensafety.authservice.service;
 
-import com.tl.womensafety.common.events.EmailVerificationEvent;
 import com.tl.womensafety.common.events.PasswordResetEvent;
 import com.tl.womensafety.common.events.UserCreatedEvent;
 import com.womensafety.authservice.dto.RegisterRequest;
