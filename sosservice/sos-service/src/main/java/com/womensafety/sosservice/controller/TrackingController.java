@@ -1,6 +1,7 @@
 package com.womensafety.sosservice.controller;
 
 import com.womensafety.sosservice.domain.TrackingSession;
+import com.womensafety.sosservice.dto.ActiveTrackingResponse;
 import com.womensafety.sosservice.dto.TrackingUpdateRequest;
 
 import com.womensafety.sosservice.service.tracking.TrackingService;
@@ -9,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/tracking")
@@ -56,4 +58,21 @@ public class TrackingController {
         );
     }
 
+    @GetMapping("/active/{userId}")
+    public ResponseEntity<ActiveTrackingResponse> getActiveTracking(
+            @PathVariable UUID userId) {
+
+        return ResponseEntity.ok(
+                trackingService.getActiveTracking(userId)
+        );
+    }
+
+    @PostMapping("/stop/{trackingId}")
+    public ResponseEntity<Void> stopTracking(
+            @PathVariable String trackingId) {
+
+        trackingService.stopTracking(trackingId);
+
+        return ResponseEntity.ok().build();
+    }
 }
