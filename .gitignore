@@ -1,69 +1,109 @@
-# =========================
-# Logs (VERY IMPORTANT)
-# =========================
+HELP.md
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+
+#####################################
+# IDE
+#####################################
+.idea/
+
+#####################################
+# Gradle
+#####################################
+.gradle/
+**/build/
+
+
+#####################################
+# Logs
+#####################################
 logs/
 *.log
 *.log.*
 *.gz
 
-# =========================
-# Loki / Observability data
-# =========================
-loki/
-infra/loki/wal/
-infra/loki/chunks/
-infra/loki/index/
+#####################################
+# Java
+#####################################
+*.class
+*.jar
+*.war
 
-# =========================
-# Gradle / Build
-# =========================
-.gradle/
-build/
-**/build/
+#####################################
+# Environment
+#####################################
+.env
+.env.*
 
-# =========================
-# IDE files
-# =========================
-.idea/
-.vscode/
-*.iml
-
-# =========================
-# OS files
-# =========================
+#####################################
+# OS Files
+#####################################
 .DS_Store
 Thumbs.db
 
-# =========================
-# Environment / Secrets
-# =========================
-.env
-*.env
-application-prod.properties
-application-docker.properties
-
-# =========================
-# Zip / temp artifacts
-# =========================
-*.zip
-
-# =========================
-# Node / frontend (if any later)
-# =========================
-node_modules/
-
-# =========================
-# Docker volumes / data
-# =========================
-data/
-mysql-data/
-
-# Secrets
-.env
-*.env
-application-twilio.properties
-application-prod.properties
-
-# Grafana runtime data
+#####################################
+# Grafana
+#####################################
 infra/grafana/grafana.db
 infra/grafana/plugins/
+
+#####################################
+# Loki
+#####################################
+infra/loki/chunks/
+infra/loki/wal/
+infra/loki/boltdb-shipper-active/
+infra/loki/boltdb-shipper-cache/
+!infra/loki/local-config.yaml
+
+#####################################
+# Promtail
+#####################################
+positions.yaml
+
+#####################################
+# Docker
+#####################################
+docker-data/
+
+#####################################
+# Archives
+#####################################
+*.zip
+*.rar
+*.7z
+*.tar
