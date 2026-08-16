@@ -1,6 +1,5 @@
 package com.womensafety.userservice.kafka;
 
-
 import com.tl.womensafety.common.events.UserCreatedEvent;
 import com.womensafety.userservice.model.UserProfile;
 import com.womensafety.userservice.repository.UserProfileRepository;
@@ -17,6 +16,7 @@ import org.springframework.stereotype.Component;
 public class UserCreatedConsumer {
 
     private final UserProfileRepository userProfileRepository;
+
     @RetryableTopic(
             attempts = "3",
             backoff = @Backoff(
@@ -31,21 +31,39 @@ public class UserCreatedConsumer {
             containerFactory = "userCreatedEventKafkaListenerContainerFactory"
     )
     public void consume(UserCreatedEvent event) {
-        log.info("Received user.created event for userId: {}", event.userId());
 
-        // Check if profile already exists
+        log.info(
+                "Received user.created event for userId: {}, phone: {}",
+                event.userId(),
+                event.phone()
+        );
+
         userProfileRepository.findByUserId(event.userId())
                 .ifPresentOrElse(
-                        existing -> log.info("Profile already exists for userId {}", event.userId()),
+                        existing -> {
+                            log.info(
+                                    "Profile already exists for userId {}",
+                                    event.userId()
+                            );
+                        },
                         () -> {
+
                             UserProfile profile = UserProfile.builder()
                                     .userId(event.userId())
-                                    .name(event.userName()) // optional: pre-fill username as name
+                                    .name(event.userName())
                                     .email(event.email())
-                                    //.isVerified(event.isVerified()) // can store if you added this field
+                                    .phone(event.phone())
+                                    //.isVerified(event.isVerified())
                                     .build();
+
                             userProfileRepository.save(profile);
-                            log.info("Created new profile for userId {}, email {}", event.userId(),profile.getEmail());
+
+                            log.info(
+                                    "Created new profile for userId {}, email {}, phone {}",
+                                    event.userId(),
+                                    profile.getEmail(),
+                                    profile.getPhone()
+                            );
                         }
                 );
     }

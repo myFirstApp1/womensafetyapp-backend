@@ -1,5 +1,4 @@
 CREATE TABLE tracking_sessions (
-
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
 
     user_id BINARY(16) NOT NULL,
@@ -14,8 +13,13 @@ CREATE TABLE tracking_sessions (
 
     recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
+    incident_id BINARY(16),
+
     is_active TINYINT(1) DEFAULT 1
 );
 
 CREATE INDEX idx_tracking_lookup
 ON tracking_sessions(tracking_id, recorded_at);
+
+CREATE INDEX idx_tracking_incident
+ON tracking_sessions(incident_id);

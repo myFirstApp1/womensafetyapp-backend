@@ -1,5 +1,7 @@
 package com.womensafety.sosservice.domain;
 
+import com.womensafety.sosservice.ai.decision.ProtectionDecision;
+import com.womensafety.sosservice.ai.dto.PredictionResponse;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -28,4 +30,7 @@ public class SensorContext {
     private GpsAnalysisResult gpsResult;
 
     private boolean preAlertActive;
+    private PredictionResponse prediction;
+
+    private ProtectionDecision aiDecision;
 }

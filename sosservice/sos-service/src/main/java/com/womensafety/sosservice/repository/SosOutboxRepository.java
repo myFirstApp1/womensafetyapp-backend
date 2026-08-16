@@ -9,7 +9,10 @@ import java.util.List;
 public interface SosOutboxRepository extends JpaRepository<SosOutbox, Long> {
 
     List<SosOutbox> findByStatus(String status);
-    List<SosOutbox> findTop100ByStatusOrderByCreatedAtAsc(OutboxStatus status);
-
-
+    List<SosOutbox> findTop100ByStatusOrderByCreatedAtAsc(
+            OutboxStatus status
+    );
+    List<SosOutbox> findTop100ByStatusInOrderByCreatedAtAsc(
+            List<OutboxStatus> statuses
+    );
 }

@@ -4,6 +4,8 @@ CREATE TABLE user_profiles (
     name VARCHAR(255),
     phone VARCHAR(255),
     address VARCHAR(255),
+    avatar VARCHAR(50),
+    email VARCHAR(255),
     profile_picture_url VARCHAR(2048),
     profile_picture_path VARCHAR(512),
     is_verified BIT(1) DEFAULT 0

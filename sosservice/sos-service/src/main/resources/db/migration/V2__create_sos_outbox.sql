@@ -6,6 +6,8 @@ CREATE TABLE sos_outbox (
 
     tracking_id VARCHAR(100),
 
+    incident_id BINARY(16),
+
     location VARCHAR(255),
 
     status VARCHAR(50),
@@ -21,3 +23,4 @@ CREATE TABLE sos_outbox (
     INDEX idx_tracking_id (tracking_id)
 
 );
+

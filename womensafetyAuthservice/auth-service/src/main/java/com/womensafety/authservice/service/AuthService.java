@@ -59,19 +59,38 @@ public class AuthService {
 
     public AuthResponse register(RegisterRequest request) {
         log.info("Validating registration for user: {}", request.getUsername());
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new EmailAlreadyExistsException("Email '" + request.getEmail() + "' is already registered");
+        Optional<User> existingUser = userRepository.findByEmail(request.getEmail());
+        if (existingUser.isPresent()) {
+            User user = existingUser.get();
+            if (Boolean.TRUE.equals(user.getIsVerified())) {
+                throw new EmailAlreadyExistsException(
+                        "Email '" + request.getEmail() + "' is already registered");
+            }
         }
-        User user = new User();
-        user.setUsername(request.getUsername());
-        user.setEmail(request.getEmail());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRole("ROLE_USER");
-        // Temporarily mark as verified (until SMTP ready)
-        user.setIsVerified(false);
-        User saved = userRepository.save(user);
-        log.info("User '{}' registered successfully", request.getUsername());
+        User saved;
+        boolean isNewUser = false;
 
+        if (existingUser.isPresent()) {
+            // Reuse the existing unverified account
+            saved = existingUser.get();
+            saved.setUsername(request.getUsername());
+            saved.setPhone(normalizePhone(request.getPhone()));
+            saved.setPassword(passwordEncoder.encode(request.getPassword()));
+            saved = userRepository.save(saved);
+            log.info("Resending OTP for existing unverified user: {}", saved.getEmail());
+
+        } else {
+            isNewUser = true;
+            User user = new User();
+            user.setUsername(request.getUsername());
+            user.setEmail(request.getEmail());
+            user.setPhone(normalizePhone(request.getPhone()));
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+            user.setRole("ROLE_USER");
+            user.setIsVerified(false);
+            saved = userRepository.save(user);
+            log.info("User '{}' registered successfully", request.getUsername());
+        }
         // CREATE OTP
         OtpCreateRequest otpReq = new OtpCreateRequest(
                 saved.getId(),
@@ -83,18 +102,38 @@ public class AuthService {
                 UUID.randomUUID(),        // eventId
                 saved.getId(),            // userId (UUID)
                 saved.getEmail(),
-                null,         // optional if present in entity
+                saved.getPhone(),
                 saved.getIsVerified(),
                 Instant.now(),
                 saved.getUsername()
         );
-        publishEvent(topicName, event);
-        log.info("Published user.created event for userId {}", saved.getId());
-
+        if (isNewUser) {
+            publishEvent(topicName, event);
+            log.info("Published user.created event for userId {}", saved.getId());
+        }
        // String token = jwtUtil.generateToken(user.getUsername());
-        return new AuthResponse(null, "OTP sent to your email", user.getId(),otp.getTxnId());
+        return new AuthResponse(null, "OTP sent to your email", saved.getId(),otp.getTxnId());
     }
+    private String normalizePhone(String phone) {
 
+        if (phone == null) {
+            throw new IllegalArgumentException("Phone number is required");
+        }
+
+        phone = phone.replaceAll("\\s+", "");
+
+        if (phone.startsWith("+91") && phone.length() == 13) {
+            return phone;
+        }
+
+        if (phone.matches("\\d{10}")) {
+            return "+91" + phone;
+        }
+
+        throw new IllegalArgumentException(
+                "Invalid phone number format"
+        );
+    }
     public AuthResponse login(AuthRequest request) {
         log.info("Login attempt for email: {}", request.getEmail());
         User user = userRepository.findByEmail(request.getEmail())
@@ -204,6 +243,10 @@ public class AuthService {
         tokenRepository.save(resetToken);
 
         log.info("Password reset successful for user: {}", user.getEmail());
+    }
+
+    public void logout(String username) {
+        log.info("User '{}' logged out successfully.", username);
     }
 
     private void publishEvent(String topic, Object event) {

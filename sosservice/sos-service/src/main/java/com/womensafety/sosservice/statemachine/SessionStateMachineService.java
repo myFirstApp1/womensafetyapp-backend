@@ -48,6 +48,22 @@ public class SessionStateMachineService {
             return;
         }
 
+        log.info("""
+
+==============================
+STATE MACHINE REQUEST
+Current = {}
+Next    = {}
+Reason  = {}
+Source  = {}
+==============================
+""",
+                oldState,
+                newState,
+                reason,
+                source
+        );
+
         // =========================================
         // VALIDATE TRANSITION
         // =========================================

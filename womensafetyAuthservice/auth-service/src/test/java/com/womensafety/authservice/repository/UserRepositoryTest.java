@@ -23,7 +23,7 @@ public class UserRepositoryTest {
 
     @Test
     void testExistsByUsername() {
-        User user = new User(null, "john", "john@example.com", "password123", "ROLE_USER",false);
+        User user = new User(null, "john", "john@example.com","9876543210", "password123", "ROLE_USER",false);
         userRepository.save(user);
 
         boolean exists = userRepository.existsByUsername("john");
@@ -32,7 +32,7 @@ public class UserRepositoryTest {
 
     @Test
     void testFindByUsername() {
-        User user = new User(null, "alice", "alice@example.com", "secret", "ROLE_USER",false);
+        User user = new User(null, "alice", "alice@example.com","9876543210", "secret", "ROLE_USER",false);
         userRepository.save(user);
 
         Optional<User> result = userRepository.findByUsername("alice");

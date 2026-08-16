@@ -23,8 +23,10 @@ public class StateTransitionValidator {
                 EnumSet.of(
                         SessionStatus.SOFT_MONITORING,
                         SessionStatus.WARNING,
+                        SessionStatus.IN_DANGER,
                         SessionStatus.PAUSED_MANUAL,
-                        SessionStatus.PAUSED_OFF_BODY
+                        SessionStatus.PAUSED_OFF_BODY,
+                        SessionStatus.ENDED
                 )
         );
 
@@ -39,7 +41,16 @@ public class StateTransitionValidator {
         allowedTransitions.put(
                 SessionStatus.IN_DANGER,
                 EnumSet.of(
-                        SessionStatus.RECOVERY_PENDING
+                        SessionStatus.RECOVERY_PENDING,
+                        SessionStatus.ENDED,
+                        SessionStatus.ACTIVE
+                )
+        );
+
+        allowedTransitions.put(
+                SessionStatus.ENDED,
+                EnumSet.of(
+                        SessionStatus.ACTIVE
                 )
         );
 
@@ -47,7 +58,8 @@ public class StateTransitionValidator {
                 SessionStatus.RECOVERY_PENDING,
                 EnumSet.of(
                         SessionStatus.SOFT_MONITORING,
-                        SessionStatus.IN_DANGER
+                        SessionStatus.IN_DANGER,
+                        SessionStatus.ENDED
                 )
         );
 
@@ -63,7 +75,8 @@ public class StateTransitionValidator {
         allowedTransitions.put(
                 SessionStatus.PAUSED_MANUAL,
                 EnumSet.of(
-                        SessionStatus.ACTIVE
+                        SessionStatus.ACTIVE,
+                        SessionStatus.ENDED
                 )
         );
 
@@ -71,7 +84,8 @@ public class StateTransitionValidator {
                 SessionStatus.PAUSED_OFF_BODY,
                 EnumSet.of(
                         SessionStatus.ACTIVE,
-                        SessionStatus.IN_DANGER
+                        SessionStatus.IN_DANGER,
+                        SessionStatus.ENDED
                 )
         );
     }
@@ -83,6 +97,10 @@ public class StateTransitionValidator {
 
         Set<SessionStatus> validStates =
                 allowedTransitions.get(currentState);
+
+        log.info("Allowed transitions from {} : {}",
+                currentState,
+                allowedTransitions.get(currentState));
 
         if (validStates == null || !validStates.contains(nextState)) {
 

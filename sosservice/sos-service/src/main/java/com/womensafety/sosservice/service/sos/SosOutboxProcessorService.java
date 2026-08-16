@@ -24,8 +24,11 @@ public class SosOutboxProcessorService {
     public void processOutbox() {
         List<SosOutbox> events =
                 sosOutboxRepository
-                        .findTop100ByStatusOrderByCreatedAtAsc(
-                                OutboxStatus.PENDING
+                        .findTop100ByStatusInOrderByCreatedAtAsc(
+                                List.of(
+                                        OutboxStatus.PENDING,
+                                        OutboxStatus.FAILED
+                                )
                         );
 
         for (SosOutbox event : events) {

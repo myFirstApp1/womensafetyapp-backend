@@ -25,8 +25,11 @@ public class UserProfile {
     private String name;
     @Column(name = "email", nullable = false)
     private String email;
+    @Column(nullable = false)
     private String phone;
     private String address;
+    @Column(name = "avatar", nullable = false)
+    private String avatar;
     @Column(name = "profile_picture_url", length = 2048)
     private String profilePictureUrl;
     @Column(name = "profile_picture_path", length = 512)

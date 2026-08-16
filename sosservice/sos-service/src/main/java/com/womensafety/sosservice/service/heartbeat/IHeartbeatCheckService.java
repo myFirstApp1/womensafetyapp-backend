@@ -62,10 +62,38 @@ public interface IHeartbeatCheckService {
      * Record vitals (heart rate, movement) from wearable device.
      * @param userId the user ID
      * @param heartRate heart rate in BPM
-     * @param movementScore movement intensity score
+     * @param movement movement intensity score
      */
-    void updateVitals(UUID userId, int heartRate, int movementScore);
+    //void updateVitals(UUID userId, int heartRate, int movementScore);
+    void updateVitals(
 
+            UUID userId,
+
+            int heartRate,
+
+            int hrv,
+
+            double movement,
+
+            double speed,
+
+            double accelX,
+
+            double accelY,
+
+            double accelZ,
+
+            double gyroX,
+
+            double gyroY,
+
+            double gyroZ,
+
+            int battery,
+
+            int worn
+
+    );
     /**
      * Mark device as removed from body.
      * @param userId the user ID

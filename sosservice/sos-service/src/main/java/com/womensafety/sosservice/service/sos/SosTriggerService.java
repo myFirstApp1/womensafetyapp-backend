@@ -37,7 +37,9 @@ public class SosTriggerService implements ISosTriggerService {
 
     public void triggerSosViaOutbox(
             ActiveSafetySession session,
-            String triggerReason
+           // UUID incidentId,
+            String reason
+
     ) {
         String location = "UNKNOWN";
 
@@ -66,7 +68,7 @@ public class SosTriggerService implements ISosTriggerService {
         log.error(
                 "🚨 SOS_TRIGGERED | userId={} | reason={} | location={}",
                 session.getUserId(),
-                triggerReason,
+                reason,
                 location
         );
 
@@ -91,7 +93,7 @@ public class SosTriggerService implements ISosTriggerService {
         sessionManager.recordEvent(
                 session,
                 "SOS_TRIGGERED",
-                triggerReason +
+                reason +
                         " | mode=" +
                         session.getCommunicationMode()
         );
@@ -110,6 +112,8 @@ public class SosTriggerService implements ISosTriggerService {
         event.setTrackingId(
                 session.getTrackingId()
         );
+        
+       // event.setIncidentId(incidentId);
 
         event.setLocation(location);
 
@@ -126,7 +130,7 @@ public class SosTriggerService implements ISosTriggerService {
         stateMachineService.transitionState(
                 session,
                 SessionStatus.IN_DANGER,
-                triggerReason,
+                reason,
                 "SOS_ENGINE"
         );
 

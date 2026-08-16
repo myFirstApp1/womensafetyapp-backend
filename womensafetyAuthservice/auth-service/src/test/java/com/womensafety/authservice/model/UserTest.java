@@ -25,9 +25,10 @@ class UserTest {
 
     @Test
     void testAllArgsConstructor() {
-        User user = new User(UUID.randomUUID(),"alice", "alice@example.com", "secret","USER",false);
+        User user = new User(UUID.randomUUID(),"alice", "alice@example.com","9876543210", "secret","USER",false);
         assertEquals("alice", user.getUsername());
         assertEquals("alice@example.com", user.getEmail());
+        assertEquals("9876543210", user.getPhone());
         assertEquals("secret", user.getPassword());
         assertEquals("USER", user.getRole());
     }

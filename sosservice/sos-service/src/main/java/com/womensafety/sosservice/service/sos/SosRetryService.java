@@ -31,7 +31,7 @@ public class SosRetryService {
         event.setRetryCount(event.getRetryCount() + 1);
         sosOutboxRepository.save(event);
         notificationService.sendAutomaticSos(
-                event.getUserId().toString(),
+                event.getUserId(),
                 event.getLocation(),
                 null
         );
@@ -48,7 +48,7 @@ public class SosRetryService {
         );
         try {
             notificationService.sendToDLT(
-                    event.getUserId().toString(),
+                    event.getUserId(),
                     event.getLocation()
             );
             event.setStatus(OutboxStatus.DLT);

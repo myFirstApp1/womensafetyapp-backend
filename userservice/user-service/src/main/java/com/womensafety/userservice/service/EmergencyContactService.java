@@ -32,12 +32,27 @@ public class EmergencyContactService {
         if (existingContacts.size() >= 15) {
             throw new ValidationException("Cannot add more than 15 emergency contacts");
         }
+        if (req.getPhoneNumber() == null) {
+            throw new ValidationException("Request phoneNumber is null");
+        }
+
         String normalizedPhone = normalizePhone(req.getPhoneNumber());
-        // Rule: Duplicate phone not allowed
+
+        // Rule: User cannot add their own phone number
+        String userPhone = normalizePhone(profile.getPhone());
+
+        if (userPhone.equals(normalizedPhone)) {
+            throw new ValidationException(
+                    "You cannot add your own phone number as an emergency contact");
+        }
+
+        // Duplicate phone
         boolean duplicatePhone = existingContacts.stream()
-                .anyMatch(c -> c.getPhoneNumber().equals(req.getPhoneNumber()));
+                .anyMatch(c -> c.getPhoneNumber().equals(normalizedPhone));
+
         if (duplicatePhone) {
-            throw new ValidationException("Phone number already exists in emergency contacts");
+            throw new ValidationException(
+                    "Phone number already exists in emergency contacts");
         }
         EmergencyContact contact = EmergencyContact.builder()
                 .name(req.getName())
@@ -91,6 +106,14 @@ public class EmergencyContactService {
         }
 
         String normalizedPhone = normalizePhone(req.getPhoneNumber());
+
+        // Rule: User cannot update contact to own phone number
+        String userPhone = normalizePhone(profile.getPhone());
+
+        if (userPhone.equals(normalizedPhone)) {
+            throw new ValidationException(
+                    "You cannot use your own phone number");
+        }
 
         // Duplicate check excluding self
         boolean duplicate = contactRepository

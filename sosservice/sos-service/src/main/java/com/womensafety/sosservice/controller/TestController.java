@@ -6,7 +6,6 @@ import com.womensafety.sosservice.domain.enums.HeartbeatLossType;
 import com.womensafety.sosservice.domain.enums.TamperEventType;
 import com.womensafety.sosservice.repository.ActiveSafetySessionRepository;
 import com.womensafety.sosservice.repository.EmergencyTimelineRepository;
-import com.womensafety.sosservice.service.*;
 import com.womensafety.sosservice.service.communication.CommunicationFallbackService;
 import com.womensafety.sosservice.service.core.SessionManager;
 import com.womensafety.sosservice.service.location.GpsIntelligenceService;

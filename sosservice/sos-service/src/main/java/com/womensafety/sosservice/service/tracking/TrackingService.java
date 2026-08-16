@@ -1,7 +1,11 @@
 package com.womensafety.sosservice.service.tracking;
 
+import com.womensafety.sosservice.domain.ActiveSafetySession;
 import com.womensafety.sosservice.domain.TrackingSession;
+import com.womensafety.sosservice.domain.enums.SessionStatus;
+import com.womensafety.sosservice.dto.ActiveTrackingResponse;
 import com.womensafety.sosservice.dto.TrackingUpdateRequest;
+import com.womensafety.sosservice.repository.ActiveSafetySessionRepository;
 import com.womensafety.sosservice.repository.TrackingSessionRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +15,8 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -18,6 +24,8 @@ import java.util.List;
 public class TrackingService {
 
     private final TrackingSessionRepository trackingSessionRepository;
+
+    private final ActiveSafetySessionRepository activeSafetySessionRepository;
 
     // =========================================
     // UPDATE LIVE LOCATION
@@ -68,4 +76,102 @@ public class TrackingService {
         return trackingSessionRepository
                 .findTop100ByTrackingIdOrderByRecordedAtDesc(trackingId);
     }
+
+    @Transactional
+    public void attachIncident(
+            String trackingId,
+            UUID incidentId
+    ) {
+
+        trackingSessionRepository.attachIncident(
+                trackingId,
+                incidentId
+        );
+
+        log.info(
+                "TRACKING_ATTACHED | trackingId={} | incidentId={}",
+                trackingId,
+                incidentId
+        );
+
+    }
+//    public ActiveTrackingResponse getActiveTracking(UUID userId) {
+//
+//        Optional<TrackingSession> latest =
+//                trackingSessionRepository
+//                        .findTopByUserIdOrderByRecordedAtDesc(userId);
+//
+//        if (latest.isEmpty()) {
+//            return ActiveTrackingResponse.builder()
+//                    .active(false)
+//                    .build();
+//        }
+//
+//        TrackingSession tracking = latest.get();
+//
+//        if (!Boolean.TRUE.equals(tracking.getIsActive())) {
+//            return ActiveTrackingResponse.builder()
+//                    .active(false)
+//                    .build();
+//        }
+//
+//        return ActiveTrackingResponse.builder()
+//                .active(true)
+//                .trackingId(tracking.getTrackingId())
+//                .build();
+//    }
+
+    public ActiveTrackingResponse getActiveTracking(UUID userId) {
+
+        ActiveSafetySession session =
+                activeSafetySessionRepository
+                        .findById(userId)
+                        .orElse(null);
+
+        if (session == null) {
+            return ActiveTrackingResponse.builder()
+                    .active(false)
+                    .build();
+        }
+
+        if (session.getStatus() != SessionStatus.ACTIVE) {
+            return ActiveTrackingResponse.builder()
+                    .active(false)
+                    .build();
+        }
+
+
+        if (session.getTrackingId() == null) {
+            return ActiveTrackingResponse.builder()
+                    .active(false)
+                    .build();
+        }
+
+        log.info(
+                "TRACKING_RECOVERY | userId={} | status={} | trackingId={}",
+                userId,
+                session.getStatus(),
+                session.getTrackingId()
+        );
+
+        log.info(
+                "TRACKING_RECOVERY | userId={} | No active session found",
+                userId
+        );
+
+        return ActiveTrackingResponse.builder()
+                .active(true)
+                .trackingId(session.getTrackingId())
+                .build();
+    }
+
+    @Transactional
+    public void stopTracking(String trackingId) {
+
+        trackingSessionRepository.deactivateTracking(trackingId);
+
+        log.info("TRACKING STOPPED | trackingId={}", trackingId);
+
+    }
+
 }

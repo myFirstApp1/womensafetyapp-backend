@@ -21,9 +21,10 @@ class RegisterRequestTest {
 
     @Test
     void testAllArgsConstructor() {
-        RegisterRequest authReq = new RegisterRequest("alice", "alice@example.com", "secret");
+        RegisterRequest authReq = new RegisterRequest("alice", "alice@example.com", "9009590000","secret");
         assertEquals("alice", authReq.getUsername());
         assertEquals("alice@example.com", authReq.getEmail());
+        assertEquals("9009590000", authReq.getPhone());
         assertEquals("secret", authReq.getPassword());
     }
 }

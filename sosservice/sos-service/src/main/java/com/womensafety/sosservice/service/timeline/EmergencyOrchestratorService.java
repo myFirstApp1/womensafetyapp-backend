@@ -2,8 +2,8 @@ package com.womensafety.sosservice.service.timeline;
 
 import com.womensafety.sosservice.domain.*;
 import com.womensafety.sosservice.service.risk.RiskDecisionEngine;
-import com.womensafety.sosservice.service.sos.SosTriggerService;
 import com.womensafety.sosservice.service.core.SessionManager;
+import com.womensafety.sosservice.service.emergency.EmergencyExecutionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -16,8 +16,8 @@ public class EmergencyOrchestratorService {
     private final RiskDecisionEngine
             riskDecisionEngine;
 
-    private final SosTriggerService
-            sosTriggerService;
+    private final EmergencyExecutionService
+            emergencyExecutionService;
 
     private final SessionManager sessionManager;
 
@@ -62,9 +62,13 @@ public class EmergencyOrchestratorService {
                 decision.getFinalRiskScore()
         );
 
-        sosTriggerService.triggerSosViaOutbox(
+
+
+        emergencyExecutionService.executeEmergency(
                 session,
-                decision.getReason()
+                decision.getFinalRiskScore(),
+                decision.getReason(),
+                "WEARABLE_AI"
         );
     }
 }

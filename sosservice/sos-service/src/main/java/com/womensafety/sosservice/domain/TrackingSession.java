@@ -26,6 +26,9 @@ public class TrackingSession {
     @Column(name = "tracking_id", nullable = false)
     private String trackingId;
 
+    @Column(name = "incident_id")
+    private UUID incidentId;
+
     @Column(name = "latitude", precision = 10, scale = 6)
     private BigDecimal latitude;
 
@@ -43,4 +46,6 @@ public class TrackingSession {
 
     @Column(name = "is_active")
     private Boolean isActive;
+
+
 }

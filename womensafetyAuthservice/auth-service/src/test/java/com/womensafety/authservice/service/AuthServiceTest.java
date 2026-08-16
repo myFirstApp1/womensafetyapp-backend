@@ -62,11 +62,12 @@ class AuthServiceTest {
    // @Test
     void testRegisterUserSuccess() {
         // Arrange
-        RegisterRequest request = new RegisterRequest("john", "john@example.com", "pass123");
+        RegisterRequest request = new RegisterRequest("john", "john@example.com","9876543210", "pass123");
         User savedUser = new User();
         savedUser.setId(UUID.randomUUID());
         savedUser.setUsername("john");
         savedUser.setEmail("john@example.com");
+        savedUser.setPhone("9876543210");
         savedUser.setPassword("encodedPassword");
         savedUser.setIsVerified(false);
 

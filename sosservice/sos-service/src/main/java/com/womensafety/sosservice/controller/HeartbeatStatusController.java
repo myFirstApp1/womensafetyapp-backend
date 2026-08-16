@@ -35,9 +35,9 @@ public class HeartbeatStatusController {
     @PutMapping("/{userId}")
     public ResponseEntity<String> heartbeat(
             @PathVariable UUID userId,
-            @RequestParam(required = false) Integer battery,
-            @RequestParam(required = false) BigDecimal lat,
-            @RequestParam(required = false) BigDecimal lon) {
+            @RequestParam(required = true) Integer battery,
+            @RequestParam(required = true) BigDecimal lat,
+            @RequestParam(required = true) BigDecimal lon) {
         log.debug("HEARTBEAT_API | heartbeat | userId={}", userId);
         heartbeatCheckService.ping(userId);
         return ResponseEntity.ok("Heartbeat updated for user: " + userId);

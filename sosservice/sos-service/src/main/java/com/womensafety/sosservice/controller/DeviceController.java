@@ -34,13 +34,42 @@ public class DeviceController {
     // =========================
     @PostMapping("/vitals/update")
     public ResponseEntity<String> updateVitals(
-            @Valid @RequestBody VitalsUpdateRequest request
-           ) {
+
+            @Valid
+            @RequestBody VitalsUpdateRequest request
+
+    ) {
+
         heartbeatCheckService.updateVitals(
+
                 request.userId(),
+
                 request.heartRate(),
-                request.movementScore()
+
+                request.hrv(),
+
+                request.movement(),
+
+                request.speed(),
+
+                request.accelX(),
+
+                request.accelY(),
+
+                request.accelZ(),
+
+                request.gyroX(),
+
+                request.gyroY(),
+
+                request.gyroZ(),
+
+                request.battery(),
+
+                request.worn()
+
         );
+
         return ResponseEntity.ok("Vitals updated");
     }
 

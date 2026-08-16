@@ -1,6 +1,9 @@
 package com.womensafety.sosservice.service.sensor;
 
-import com.womensafety.sosservice.domain.*;
+import com.womensafety.sosservice.ai.decision.ProtectionDecision;
+import com.womensafety.sosservice.ai.dto.PredictionResponse;
+import com.womensafety.sosservice.domain.DangerAssessment;
+import com.womensafety.sosservice.domain.SensorContext;
 import com.womensafety.sosservice.domain.enums.DangerLevel;
 import org.springframework.stereotype.Service;
 
@@ -16,11 +19,10 @@ public class SensorFusionService {
         String reason = "NORMAL";
 
         // =========================
-        // PRE ALERT BONUS
+        // PRE ALERT
         // =========================
 
         if (context.isPreAlertActive()) {
-
             risk += 20;
         }
 
@@ -29,10 +31,7 @@ public class SensorFusionService {
         // =========================
 
         if (context.getHeartbeatLoss() != null) {
-
-            risk += context
-                    .getHeartbeatLoss()
-                    .getRiskScore();
+            risk += context.getHeartbeatLoss().getRiskScore();
         }
 
         // =========================
@@ -40,10 +39,7 @@ public class SensorFusionService {
         // =========================
 
         if (context.getTamperResult() != null) {
-
-            risk += context
-                    .getTamperResult()
-                    .getRiskScore();
+            risk += context.getTamperResult().getRiskScore();
         }
 
         // =========================
@@ -51,10 +47,7 @@ public class SensorFusionService {
         // =========================
 
         if (context.getOffBodyResult() != null) {
-
-            risk += context
-                    .getOffBodyResult()
-                    .getRiskScore();
+            risk += context.getOffBodyResult().getRiskScore();
         }
 
         // =========================
@@ -62,14 +55,66 @@ public class SensorFusionService {
         // =========================
 
         if (context.getGpsResult() != null) {
-
-            risk += context
-                    .getGpsResult()
-                    .getRiskScore();
+            risk += context.getGpsResult().getRiskScore();
         }
 
         // =========================
-        // DETERMINE LEVEL
+        // AI Prediction
+        // =========================
+
+        PredictionResponse prediction =
+                context.getPrediction();
+
+        if (prediction != null) {
+
+            risk = Math.max(
+                    risk,
+                    prediction.getRiskScore()
+            );
+
+        }
+
+        // =========================
+        // AI Decision Bonus
+        // =========================
+
+        ProtectionDecision decision =
+                context.getAiDecision();
+
+        if (decision != null) {
+
+            switch (decision) {
+
+                case TRIGGER_SOS -> {
+                    risk += 30;
+                    reason = "AI_TRIGGERED_SOS";
+                }
+
+                case SHOW_WARNING -> {
+                    risk += 15;
+                    reason = "AI_WARNING";
+                }
+
+                case MONITOR -> {
+                    risk += 5;
+                }
+
+                case NO_ACTION -> {
+                    // no additional risk
+                }
+
+            }
+
+        }
+
+        // =========================
+        // Cap Risk
+        // =========================
+
+        risk = Math.min(risk, 100);
+
+        // =========================
+        // Final Danger Level
         // =========================
 
         DangerLevel level;
@@ -78,25 +123,33 @@ public class SensorFusionService {
 
             level = DangerLevel.CRITICAL;
 
-            reason = "CRITICAL_DANGER";
+            if ("NORMAL".equals(reason)) {
+                reason = "CRITICAL_DANGER";
+            }
 
         } else if (risk >= 70) {
 
             level = DangerLevel.HIGH;
 
-            reason = "HIGH_RISK";
+            if ("NORMAL".equals(reason)) {
+                reason = "HIGH_RISK";
+            }
 
         } else if (risk >= 40) {
 
             level = DangerLevel.MEDIUM;
 
-            reason = "MEDIUM_RISK";
+            if ("NORMAL".equals(reason)) {
+                reason = "MEDIUM_RISK";
+            }
 
         } else if (risk >= 20) {
 
             level = DangerLevel.LOW;
 
-            reason = "LOW_RISK";
+            if ("NORMAL".equals(reason)) {
+                reason = "LOW_RISK";
+            }
 
         } else {
 

@@ -7,11 +7,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @Slf4j
 @RestController
 @RequestMapping("/api/sos")
 @RequiredArgsConstructor
 public class SosController {
+
 
     private final NotificationService notificationService;
 
@@ -21,7 +24,8 @@ public class SosController {
      */
     @PostMapping("/trigger/{userId}")
     public ResponseEntity<String> triggerSos(
-            @PathVariable String userId,
+            UUID incidentId,
+            @PathVariable UUID userId,
             @RequestParam(name = "location") String currentLocation,
             @RequestParam(name = "channel", required = false) String channel,
             @RequestParam(name = "async", required = false, defaultValue = "false") boolean async
@@ -29,7 +33,7 @@ public class SosController {
         log.info("Incoming SOS for user {} at {} via {}", userId, currentLocation, channel == null ? "default" : channel);
 
         try {
-            notificationService.sendAutomaticSos(userId, currentLocation, channel);
+            notificationService.sendAutomaticSos( userId, currentLocation, channel);
 
             if (async) {
                 return ResponseEntity.accepted().build();

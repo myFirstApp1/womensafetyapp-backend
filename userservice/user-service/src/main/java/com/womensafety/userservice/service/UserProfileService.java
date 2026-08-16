@@ -34,6 +34,7 @@ public class UserProfileService {
                 .name(profile.getName())
                 .email(profile.getEmail())
                 .phone(profile.getPhone())
+                .avatar(profile.getAvatar())
                 .address(profile.getAddress())
                 .profilePictureUrl(profile.getProfilePictureUrl())
                // .isVerified(profile.isVerified())
@@ -53,11 +54,15 @@ public class UserProfileService {
     public UserProfile updateProfile(UUID userId, UserProfile updated) {
         UserProfile profile = userProfileRepository.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Profile not found for userId: " + userId));
-
+        System.out.println("================================");
+        System.out.println("Avatar received = " + updated.getAvatar());
+        System.out.println(updated);
+        System.out.println("================================");
 
         profile.setName(updated.getName());
         profile.setPhone(updated.getPhone());
         profile.setAddress(updated.getAddress());
+        profile.setAvatar(updated.getAvatar());
         profile.setProfilePictureUrl(updated.getProfilePictureUrl());
         profile.setProfilePicturePath(updated.getProfilePicturePath());
         //profile.setVerified(updated.isVerified());

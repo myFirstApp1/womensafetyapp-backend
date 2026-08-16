@@ -27,7 +27,7 @@ class CustomUserDetailsServiceTest {
 
     @Test
     void testLoadUserByUsername_UserExists() {
-        User mockUser = new User(UUID.randomUUID(), "john", "john@example.com", "pass", "ROLE_USER",false);
+        User mockUser = new User(UUID.randomUUID(), "john", "john@example.com","9876543210", "pass", "ROLE_USER",false);
         when(userRepository.findByUsername("john")).thenReturn(Optional.of(mockUser));
 
         UserDetails userDetails = userDetailsService.loadUserByUsername("john");

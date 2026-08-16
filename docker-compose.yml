@@ -77,20 +77,31 @@ services:
     ports:
       - "8080:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/authdb?useSSL=false&allowPublicKeyRetrieval=true
-      SPRING_DATASOURCE_USERNAME: user
-      SPRING_DATASOURCE_PASSWORD: password
-      LOGGING_FILE_NAME: /app/logs/auth-service.log
       SPRING_PROFILES_ACTIVE: docker
+      DB_URL: jdbc:mysql://mysql-db:3306/authdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USERNAME: user
+      DB_PASSWORD: password
+      KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      KAFKA_CONSUMER_GROUP: auth-service-group
+      USER_CREATED_TOPIC: user.identity
+      USER_VERIFIED_TOPIC: user.verified
+      EMAIL_VERIFICATION_TOPIC: send.email.verification
+      EMAIL_PASSWORD_RESET_TOPIC: send.email.password-reset
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: "3600000"
+      OTP_CODE_LENGTH: "6"
+      OTP_TTL_MINUTES: "10"
+      OTP_MAX_ATTEMPTS: "5"
+      OTP_DEV_RETURN_CODE: "true"
+      OUTBOX_POLL_MS: "2000"
+      OUTBOX_BATCH_SIZE: "50"
     volumes:
       - ./logs/auth-service:/app/logs
     depends_on:
-      loki:
-        condition: service_started
-      promtail:
-        condition: service_started
       mysql-db:
         condition: service_healthy
+      redpanda:
+        condition: service_started
     networks:
       - app-net
 
@@ -100,14 +111,17 @@ services:
     ports:
       - "8082:8082"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/userdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-      SPRING_DATASOURCE_USERNAME: user
-      SPRING_DATASOURCE_PASSWORD: password
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      DB_URL: jdbc:mysql://mysql-db:3306/userdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USERNAME: user
+      DB_PASSWORD: password
+      KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
       SPRING_PROFILES_ACTIVE: docker
-      APP_VERIFICATION_TOPIC: user.identity
+      USER_CREATED_TOPIC: user.identity
+      USER_VERIFIED_TOPIC: user.verified
       FIREBASE_ENABLED: "false"
-      SPRING_APPLICATION_NAME: user-service
+      KAFKA_CONSUMER_GROUP: user-service
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: "3600000"
       LOGGING_FILE_NAME: /app/logs/user-service.log
     volumes:
       - ./logs/user-service:/app/logs
@@ -125,25 +139,19 @@ services:
     ports:
       - "8083:8083"
     environment:
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
       SPRING_PROFILES_ACTIVE: docker
-
-      # Mailtrap config
-      SPRING_MAIL_HOST: sandbox.smtp.mailtrap.io
-      SPRING_MAIL_PORT: 587
-      SPRING_MAIL_USERNAME: cf1f40c2497ac7
-      SPRING_MAIL_PASSWORD: c72c9703dafe0b
-      SPRING_MAIL_PROTOCOL: smtp
-      SPRING_MAIL_DEFAULT_ENCODING: UTF-8
-
-      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: "true"
-      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: "true"
-      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_REQUIRED: "true"
-      SPRING_MAIL_PROPERTIES_MAIL_SMTP_CONNECTIONTIMEOUT: 10000
-      SPRING_MAIL_PROPERTIES_MAIL_SMTP_TIMEOUT: 10000
-      SPRING_MAIL_PROPERTIES_MAIL_SMTP_WRITETIMEOUT: 10000
+      KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      KAFKA_CONSUMER_GROUP: notification-service-group
+      KAFKA_AUTO_OFFSET_RESET: earliest
+      KAFKA_ACK_MODE: record
+      KAFKA_CONCURRENCY: 3
+      KAFKA_MAX_POLL_RECORDS: 10
+      EMAIL_PASSWORD_RESET_TOPIC: send.email.password-reset
+      APP_EMAIL_MOCK: "true"
+      NOTIFICATION_MODE: mock
     depends_on:
-      - redpanda
+      redpanda:
+        condition: service_started
     networks:
       - app-net
 
@@ -153,13 +161,17 @@ services:
     ports:
       - "8084:8084"
     environment:
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
       SPRING_PROFILES_ACTIVE: docker
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/sosdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-      SPRING_DATASOURCE_USERNAME: user
-      SPRING_DATASOURCE_PASSWORD: password
+      DB_URL: jdbc:mysql://mysql-db:3306/sosdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USERNAME: user
+      DB_PASSWORD: password
+      KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      USER_SERVICE_BASE_URL: http://user-service:8082/api/users/contacts
     depends_on:
-      - redpanda
+      mysql-db:
+        condition: service_healthy
+      redpanda:
+        condition: service_started
     networks:
       - app-net
 
