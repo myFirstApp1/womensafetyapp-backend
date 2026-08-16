@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: womensafety-config
+  namespace: womensafety
+
+data:
+  SPRING_PROFILES_ACTIVE: "docker"
+  KAFKA_BOOTSTRAP_SERVERS: "redpanda:9093"
+
+  AUTH_DB_URL: "jdbc:mysql://mysql-db:3306/authdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+  USER_DB_URL: "jdbc:mysql://mysql-db:3306/userdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+  SOS_DB_URL: "jdbc:mysql://mysql-db:3306/sosdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+
+  USER_SERVICE_BASE_URL: "http://user-service:8082/api/users/contacts"

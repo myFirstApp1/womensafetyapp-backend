@@ -1,0 +1,31 @@
+statefulset:
+  replicas: 1
+
+image:
+  repository: redpandadata/redpanda
+  tag: v23.3.3
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+storage:
+  persistentVolume:
+    enabled: false
+
+external:
+  enabled: false
+
+tls:
+  enabled: false
+
+console:
+  enabled: false
+
+auth:
+  sasl:
+    enabled: false

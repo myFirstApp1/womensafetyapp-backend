@@ -1,0 +1,114 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sos-service
+  namespace: womensafety
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: sos-service
+
+  template:
+    metadata:
+      labels:
+        app: sos-service
+
+    spec:
+      containers:
+        - name: sos-service
+          image: womensafetyapp-backend-sos-service:latest
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - name: http
+              containerPort: 8084
+
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              valueFrom:
+                configMapKeyRef:
+                  name: womensafety-config
+                  key: SPRING_PROFILES_ACTIVE
+
+            - name: DB_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: womensafety-config
+                  key: SOS_DB_URL
+
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: womensafety-secrets
+                  key: DB_USERNAME
+
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: womensafety-secrets
+                  key: DB_PASSWORD
+
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              valueFrom:
+                configMapKeyRef:
+                  name: womensafety-config
+                  key: KAFKA_BOOTSTRAP_SERVERS
+
+            - name: USER_SERVICE_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: womensafety-config
+                  key: USER_SERVICE_BASE_URL
+
+            - name: HEARTBEAT_TIMEOUT_SECONDS
+              value: "300"
+
+            - name: HEARTBEAT_CHECK_INTERVAL_SECONDS
+              value: "30"
+
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sos-service
+  namespace: womensafety
+
+spec:
+  type: ClusterIP
+
+  selector:
+    app: sos-service
+
+  ports:
+    - name: http
+      port: 8084
+      targetPort: 8084
+      protocol: TCP

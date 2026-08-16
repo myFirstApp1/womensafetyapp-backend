@@ -1,0 +1,135 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service
+  namespace: womensafety
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: auth-service
+
+  template:
+    metadata:
+      labels:
+        app: auth-service
+
+    spec:
+      containers:
+        - name: auth-service
+          image: womensafetyapp-backend-auth-service:latest
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - name: http
+              containerPort: 8080
+
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              valueFrom:
+                configMapKeyRef:
+                  name: womensafety-config
+                  key: SPRING_PROFILES_ACTIVE
+
+            - name: DB_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: womensafety-config
+                  key: AUTH_DB_URL
+
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: womensafety-secrets
+                  key: DB_USERNAME
+
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: womensafety-secrets
+                  key: DB_PASSWORD
+
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              valueFrom:
+                configMapKeyRef:
+                  name: womensafety-config
+                  key: KAFKA_BOOTSTRAP_SERVERS
+
+            - name: KAFKA_CONSUMER_GROUP
+              value: "auth-service-group"
+
+            - name: USER_CREATED_TOPIC
+              value: "user.identity"
+
+            - name: USER_VERIFIED_TOPIC
+              value: "user.verified"
+
+            - name: EMAIL_VERIFICATION_TOPIC
+              value: "send.email.verification"
+
+            - name: EMAIL_PASSWORD_RESET_TOPIC
+              value: "send.email.password-reset"
+
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: womensafety-secrets
+                  key: JWT_SECRET
+
+            - name: JWT_EXPIRATION
+              value: "3600000"
+
+            - name: OTP_CODE_LENGTH
+              value: "6"
+
+            - name: OTP_TTL_MINUTES
+              value: "10"
+
+            - name: OTP_MAX_ATTEMPTS
+              value: "5"
+
+            - name: OTP_DEV_RETURN_CODE
+              value: "true"
+
+            - name: OUTBOX_POLL_MS
+              value: "2000"
+
+            - name: OUTBOX_BATCH_SIZE
+              value: "50"
+
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+  namespace: womensafety
+
+spec:
+  selector:
+    app: auth-service
+
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+
+  type: ClusterIP
