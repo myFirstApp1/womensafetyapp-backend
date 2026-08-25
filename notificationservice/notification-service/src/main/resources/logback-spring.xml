@@ -1,13 +1,33 @@
 <configuration>
+
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>
-                {"timestamp":"%d{ISO8601}","level":"%p","service":"%X{spring.application.name}","traceId":"%X{sosTraceId}","thread":"%t","message":"%m"}%n
+                {"timestamp":"%d{ISO8601}","level":"%p","service":"notification-service","traceId":"%X{sosTraceId}","thread":"%t","message":"%m"}%n
             </pattern>
         </encoder>
     </appender>
 
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+
+        <file>/app/logs/notification-service/notification-service.log</file>
+
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>/app/logs/notification-service/notification-service-%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+
+        <encoder>
+            <pattern>
+                {"timestamp":"%d{ISO8601}","level":"%p","service":"notification-service","traceId":"%X{sosTraceId}","thread":"%t","message":"%m"}%n
+            </pattern>
+        </encoder>
+
+    </appender>
+
     <root level="INFO">
-        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
     </root>
+
 </configuration>

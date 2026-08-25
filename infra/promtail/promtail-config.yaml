@@ -24,3 +24,19 @@ scrape_configs:
         labels:
           job: user-service
           __path__: /app/logs/user-service/*.log
+
+  - job_name: sos-service
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: sos-service
+          __path__: /app/logs/sos-service/*.log
+
+  - job_name: notification-service
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: notification-service
+          __path__: /app/logs/notification-service/*.log                

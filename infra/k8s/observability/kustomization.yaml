@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: womensafety
+
+resources:
+  - loki.yaml
+  - promtail-rbac.yaml
+  - promtail.yaml
+
+configMapGenerator:
+  - name: loki-config
+    files:
+      - local-config.yaml=loki-config.yaml
+
+  - name: promtail-config
+    files:
+      - promtail-config.yaml=promtail-config.yaml

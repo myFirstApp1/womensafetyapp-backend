@@ -28,9 +28,9 @@ services:
     image: redpandadata/redpanda:v23.3.3
     container_name: redpanda
     command:
-      - redpanda start --overprovisioned --smp 1 --memory 1G --reserve-memory 0M --node-id 0 --check=false --kafka-addr PLAINTEXT://0.0.0.0:9092 --advertise-kafka-addr PLAINTEXT://redpanda:9092
+      - redpanda start --overprovisioned --smp 1 --memory 1G --reserve-memory 0M --node-id 0 --check=false --kafka-addr PLAINTEXT://0.0.0.0:9093 --advertise-kafka-addr PLAINTEXT://redpanda:9093
     ports:
-      - "9092:9092"
+      - "9093:9093"
       - "9644:9644"
     networks:
       - app-net
@@ -81,7 +81,7 @@ services:
       DB_URL: jdbc:mysql://mysql-db:3306/authdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       DB_USERNAME: user
       DB_PASSWORD: password
-      KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      KAFKA_BOOTSTRAP_SERVERS: redpanda:9093
       KAFKA_CONSUMER_GROUP: auth-service-group
       USER_CREATED_TOPIC: user.identity
       USER_VERIFIED_TOPIC: user.verified
@@ -114,7 +114,7 @@ services:
       DB_URL: jdbc:mysql://mysql-db:3306/userdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       DB_USERNAME: user
       DB_PASSWORD: password
-      KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      KAFKA_BOOTSTRAP_SERVERS: redpanda:9093
       SPRING_PROFILES_ACTIVE: docker
       USER_CREATED_TOPIC: user.identity
       USER_VERIFIED_TOPIC: user.verified
@@ -140,7 +140,7 @@ services:
       - "8083:8083"
     environment:
       SPRING_PROFILES_ACTIVE: docker
-      KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      KAFKA_BOOTSTRAP_SERVERS: redpanda:9093
       KAFKA_CONSUMER_GROUP: notification-service-group
       KAFKA_AUTO_OFFSET_RESET: earliest
       KAFKA_ACK_MODE: record
@@ -149,6 +149,8 @@ services:
       EMAIL_PASSWORD_RESET_TOPIC: send.email.password-reset
       APP_EMAIL_MOCK: "true"
       NOTIFICATION_MODE: mock
+    volumes:
+      - ./logs/notification-service:/app/logs/notification-service  
     depends_on:
       redpanda:
         condition: service_started
@@ -165,8 +167,10 @@ services:
       DB_URL: jdbc:mysql://mysql-db:3306/sosdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       DB_USERNAME: user
       DB_PASSWORD: password
-      KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      KAFKA_BOOTSTRAP_SERVERS: redpanda:9093
       USER_SERVICE_BASE_URL: http://user-service:8082/api/users/contacts
+    volumes:
+      - ./logs/sos-service:/app/logs/sos-service  
     depends_on:
       mysql-db:
         condition: service_healthy
