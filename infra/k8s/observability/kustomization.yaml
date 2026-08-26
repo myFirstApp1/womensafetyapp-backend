@@ -7,6 +7,7 @@ resources:
   - loki.yaml
   - promtail-rbac.yaml
   - promtail.yaml
+  - grafana.yaml
 
 configMapGenerator:
   - name: loki-config

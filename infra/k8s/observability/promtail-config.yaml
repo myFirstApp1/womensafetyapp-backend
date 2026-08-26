@@ -10,6 +10,10 @@ clients:
 
 scrape_configs:
 
+  # ============================================================
+  # Docker container logs
+  # ============================================================
+
   - job_name: kubernetes-containers
 
     static_configs:
@@ -22,3 +26,31 @@ scrape_configs:
 
     pipeline_stages:
       - docker: {}
+
+  # ============================================================
+  # Kubernetes container logs
+  # ============================================================
+
+  - job_name: kubernetes-pods
+
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: kubernetes-pods
+          __path__: /var/log/containers/*.log
+
+    pipeline_stages:
+
+      - docker: {}
+
+      # Extract Kubernetes metadata from the ACTUAL filename.
+      - regex:
+          source: filename
+          expression: '/var/log/containers/(?P<pod>[^_]+)_(?P<namespace>[^_]+)_(?P<container>.+)-[a-f0-9]{64}\.log'
+
+      # Convert extracted values into Loki labels.
+      - labels:
+          pod:
+          namespace:
+          container:
